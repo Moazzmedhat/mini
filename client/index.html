@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Jetpack Arena — 2D Multiplayer Shooter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #090d16;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #f8fafc;
+      touch-action: none;
+    }
+
+    #game-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* UI Layer */
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    .interactive-ui {
+      pointer-events: auto;
+    }
+
+    /* Connection status badge */
+    #connection-badge {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid #334155;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 50;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
+    }
+
+    /* Overlay Screens (Home & Lobby) */
+    .screen-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.94), rgba(9, 13, 22, 0.98));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      backdrop-filter: blur(8px);
+      padding: 16px;
+    }
+
+    .modal-card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 16px;
+      padding: 24px 28px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      text-align: center;
+    }
+
+    .game-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #4ade80 0%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    .game-subtitle {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    /* Form inputs */
+    .form-group {
+      margin-bottom: 14px;
+      text-align: left;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .form-input {
+      width: 100%;
+      background: #1e293b;
+      border: 1.5px solid #334155;
+      border-radius: 8px;
+      padding: 11px 14px;
+      color: #f8fafc;
+      font-size: 15px;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .form-input:focus {
+      border-color: #38bdf8;
+    }
+
+    .color-picker-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 10px 0 16px;
+    }
+
+    .color-choice {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+
+    .color-choice.selected {
+      transform: scale(1.15);
+      border-color: #ffffff;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    /* Action Buttons */
+    .btn {
+      width: 100%;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+      margin-bottom: 10px;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+    }
+
+    .btn-secondary {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      margin-bottom: 8px;
+    }
+
+    .btn-secondary:hover {
+      background: #334155;
+    }
+
+    .btn-success {
+      background: #10b981 !important;
+      color: #ffffff !important;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: #ffffff;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Room Screen */
+    .room-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    .room-code-badge {
+      font-family: 'Orbitron', monospace;
+      font-size: 24px;
+      font-weight: 900;
+      color: #38bdf8;
+      letter-spacing: 4px;
+    }
+
+    .player-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .player-list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1e293b;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .player-item-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .player-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .host-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #f59e0b;
+      color: #000;
+      font-weight: 800;
+    }
+
+    .you-badge {
+      font-size: 10px;
+      color: #4ade80;
+      font-weight: 700;
+    }
+
+    .ready-badge {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .ready-badge.ready {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+      border: 1px solid #22c55e;
+    }
+
+    .ready-badge.not-ready {
+      background: rgba(148, 163, 184, 0.15);
+      color: #94a3b8;
+    }
+
+    /* IN-GAME HUD */
+    #hud-container {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .hud-top-bar {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.85);
+      padding: 6px 14px;
+      border-radius: 10px;
+      border: 1px solid #1e293b;
+    }
+
+    .hud-timer {
+      font-family: 'Orbitron', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    /* Health & Fuel meters bottom left */
+    .hud-meters-container {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.85);
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid #1e293b;
+      width: 220px;
+    }
+
+    .meter-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .meter-bar-track {
+      width: 100%;
+      height: 8px;
+      background: #334155;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .meter-bar-fill {
+      height: 100%;
+      width: 100%;
+      transition: width 0.1s linear, background-color 0.2s ease;
+    }
+
+    #hud-health-fill {
+      background-color: #22c55e;
+    }
+
+    #hud-fuel-fill {
+      background-color: #06b6d4;
+    }
+
+    /* Weapon status bottom right */
+    .hud-weapon-card {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 10px 14px;
+      text-align: right;
+    }
+
+    .hud-weapon-name {
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+
+    .hud-ammo-value {
+      font-family: 'Orbitron', monospace;
+      font-size: 18px;
+      font-weight: 900;
+      color: #38bdf8;
+    }
+
+    .hud-reload-indicator {
+      font-size: 10px;
+      color: #ef4444;
+      font-weight: 800;
+      display: none;
+    }
+
+    /* Kill Feed */
+    #kill-feed-container {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-end;
+    }
+
+    .kill-feed-item {
+      background: rgba(15, 23, 42, 0.85);
+      border-left: 3px solid #ef4444;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      transition: opacity 0.5s ease;
+    }
+
+    .kill-feed-item.fade-out {
+      opacity: 0;
+    }
+
+    .kf-killer {
+      color: #4ade80;
+    }
+
+    .kf-victim {
+      color: #f87171;
+    }
+
+    /* Fullscreen Countdown Overlay */
+    #countdown-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 25;
+    }
+
+    #countdown-number {
+      font-family: 'Orbitron', monospace;
+      font-size: 110px;
+      font-weight: 900;
+      color: #4ade80;
+      text-shadow: 0 0 30px rgba(74, 222, 128, 0.8);
+      animation: pulse 0.5s ease;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Match End Overlay */
+    #match-end-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.95);
+      z-index: 40;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .scoreboard-table {
+      width: 100%;
+      margin: 16px 0;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .scoreboard-table th {
+      color: #94a3b8;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 8px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .scoreboard-table td {
+      padding: 8px;
+      border-bottom: 1px solid #1e293b;
+      text-align: center;
+    }
+
+    /* MOBILE ON-SCREEN TOUCH CONTROLS */
+    #touch-controls-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 15;
+      display: none;
+      pointer-events: none;
+    }
+
+    #joystick-touch-zone {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 50%;
+      height: 100%;
+      pointer-events: auto;
+    }
+
+    #aim-touch-zone {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 50%;
+      height: 100%;
+      pointer-events: auto;
+    }
+
+    #joystick-base {
+      position: absolute;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      transform: translate(-50%, -50%);
+      display: none;
+      pointer-events: none;
+    }
+
+    #joystick-thumb {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.7);
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
+      transform: translate(-50%, -50%);
+    }
+
+    /* Action buttons on mobile */
+    .touch-action-btn {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 13px;
+      text-transform: uppercase;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      pointer-events: auto;
+      transition: transform 0.08s ease;
+    }
+
+    .touch-action-btn.active {
+      transform: scale(0.92);
+      filter: brightness(1.2);
+    }
+
+    #btn-touch-boost {
+      bottom: 24px;
+      right: 130px;
+      width: 66px;
+      height: 66px;
+      background: radial-gradient(circle, #f97316, #ea580c);
+      color: #ffffff;
+      box-shadow: 0 0 16px rgba(249, 115, 22, 0.6);
+    }
+
+    #btn-touch-jump {
+      bottom: 96px;
+      right: 140px;
+      width: 56px;
+      height: 56px;
+      background: #1e293b;
+      color: #38bdf8;
+      border-color: #38bdf8;
+    }
+
+    #btn-touch-fire {
+      bottom: 28px;
+      right: 28px;
+      width: 84px;
+      height: 84px;
+      background: radial-gradient(circle, #ef4444, #dc2626);
+      color: #ffffff;
+      font-size: 16px;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.7);
+    }
+
+    #btn-touch-reload {
+      bottom: 124px;
+      right: 48px;
+      width: 50px;
+      height: 50px;
+      background: #1e293b;
+      color: #facc15;
+      font-size: 11px;
+    }
+
+    /* Mobile portrait rotation prompt */
+    #orientation-prompt {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #090d16;
+      z-index: 100;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+
+    @media (orientation: portrait) and (max-width: 768px) {
+      #orientation-prompt {
+        display: flex;
+      }
+    }
+
+    /* Toast error notifications */
+    #error-toast {
+      display: none;
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ef4444;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      z-index: 60;
+    }
+  </style>
+</head>
+<body>
+  <!-- Orientation rotate warning for portrait phones -->
+  <div id="orientation-prompt">
+    <div style="font-size: 48px; margin-bottom: 16px;">🔄</div>
+    <h2 style="font-family:'Orbitron', sans-serif; margin-bottom: 10px;">ROTATE DEVICE</h2>
+    <p style="color:#94a3b8; max-width: 300px; font-size: 14px;">
+      Jetpack Arena is built for landscape arena combat. Please rotate your phone to landscape mode.
+    </p>
+  </div>
+
+  <!-- Phaser Game Canvas Mount -->
+  <div id="game-container"></div>
+
+  <!-- UI & Controls Overlay Layer -->
+  <div class="ui-layer">
+    <!-- Connection Status -->
+    <div id="connection-badge">
+      <div class="status-dot"></div>
+      <span id="connection-text">ONLINE</span>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="error-toast"></div>
+
+    <!-- HOME SCREEN -->
+    <div id="home-screen" class="screen-overlay interactive-ui">
+      <div class="modal-card">
+        <h1 class="game-logo">JETPACK ARENA</h1>
+        <p class="game-subtitle">2D Mobile Jetpack Shooter</p>
+
+        <div class="form-group">
+          <label class="form-label" for="input-callsign">PILOT CALLSIGN</label>
+          <input id="input-callsign" class="form-input" maxlength="16" placeholder="Enter Callsign..." />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ARMOR COLOR</label>
+          <div class="color-picker-row">
+            <div class="color-choice selected" style="background: #22c55e;" data-color="#22c55e"></div>
+            <div class="color-choice" style="background: #3b82f6;" data-color="#3b82f6"></div>
+            <div class="color-choice" style="background: #ef4444;" data-color="#ef4444"></div>
+            <div class="color-choice" style="background: #f97316;" data-color="#f97316"></div>
+            <div class="color-choice" style="background: #a855f7;" data-color="#a855f7"></div>
+          </div>
+        </div>
+
+        <button id="btn-create-room" class="btn btn-primary">⚡ CREATE ROOM</button>
+
+        <div class="form-group" style="margin-top: 14px;">
+          <label class="form-label" for="input-room-code">JOIN WITH ROOM CODE</label>
+          <div style="display:flex; gap:8px;">
+            <input id="input-room-code" class="form-input" maxlength="5" placeholder="CODE (e.g. ABCDE)" style="text-transform:uppercase; font-family:'Orbitron', monospace; font-size:16px; letter-spacing:2px;" />
+            <button id="btn-join-room" class="btn btn-secondary" style="width:auto; margin:0; padding:0 20px;">JOIN</button>
+          </div>
+        </div>
+
+        <div class="button-row" style="margin-top: 14px;">
+          <button id="btn-help-open" class="btn btn-secondary">❓ CONTROLS</button>
+          <button id="btn-mute-toggle" class="btn btn-secondary">🔊 SOUND ON</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROOM LOBBY SCREEN -->
+    <div id="room-screen" class="screen-overlay interactive-ui" style="display:none;">
+      <div class="modal-card">
+        <div class="room-header">
+          <div>
+            <div style="font-size: 11px; color:#94a3b8; font-weight:700;">ROOM CODE</div>
+            <div id="display-room-code" class="room-code-badge">-----</div>
+          </div>
+          <button id="btn-copy-code" class="btn btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">SHARE LINK</button>
+        </div>
+
+        <div id="room-status-text" style="font-size:12px; color:#38bdf8; font-weight:700; margin-bottom:12px; text-transform:uppercase;">
+          LOBBY WAITING
+        </div>
+
+        <div id="room-player-list" class="player-list"></div>
+
+        <button id="btn-start-match" class="btn btn-primary" style="display:none;">🚀 START MATCH</button>
+        <button id="btn-ready-toggle" class="btn btn-secondary">READY UP</button>
+        <button id="btn-leave-room" class="btn btn-secondary" style="margin-top:8px;">LEAVE ROOM</button>
+      </div>
+    </div>
+
+    <!-- CONTROLS & HOW TO PLAY MODAL -->
+    <div id="help-modal" class="screen-overlay interactive-ui" style="display:none; z-index:50;">
+      <div class="modal-card" style="text-align: left;">
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:18px; margin-bottom:14px; color:#38bdf8;">HOW TO PLAY</h2>
+        <div style="font-size:13px; line-height:1.6; color:#cbd5e1; margin-bottom:16px;">
+          <p><strong>💻 DESKTOP:</strong></p>
+          <p>• <strong>A / D</strong> or Arrow Keys: Run left/right</p>
+          <p>• <strong>W / Space</strong>: Jump (when on ground)</p>
+          <p>• <strong>Shift</strong>: Jetpack Boost (hold to fly)</p>
+          <p>• <strong>Mouse</strong>: Aim & Left Click to shoot</p>
+          <p>• <strong>R</strong>: Reload magazine | <strong>1/2/3</strong>: Switch weapons</p>
+          <br>
+          <p><strong>📱 MOBILE:</strong></p>
+          <p>• Left thumb joystick: Move & jump</p>
+          <p>• Right thumb: Aim pad & tap FIRE</p>
+          <p>• <strong>BOOST</strong> button: Hold to engage jetpack</p>
+          <p>• Keep an eye on your jetpack fuel meter!</p>
+        </div>
+        <button id="btn-help-close" class="btn btn-primary">GOT IT</button>
+      </div>
+    </div>
+
+    <!-- IN-GAME HUD -->
+    <div id="hud-container">
+      <div class="hud-top-bar">
+        <span style="font-family:'Orbitron', sans-serif; font-weight:900; color:#4ade80; font-size:13px;">JETPACK ARENA</span>
+        <span id="hud-timer-value" class="hud-timer">3:00</span>
+      </div>
+
+      <!-- Kill Feed -->
+      <div id="kill-feed-container"></div>
+
+      <!-- Player Health & Jetpack Fuel meters -->
+      <div class="hud-meters-container">
+        <div>
+          <div class="meter-label-row">
+            <span style="color:#22c55e;">HEALTH</span>
+            <span id="hud-health-value">100</span>
+          </div>
+          <div class="meter-bar-track">
+            <div id="hud-health-fill" class="meter-bar-fill"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="meter-label-row">
+            <span style="color:#06b6d4;">JETPACK FUEL</span>
+            <span id="hud-fuel-value">100%</span>
+          </div>
+          <div class="meter-bar-track">
+            <div id="hud-fuel-fill" class="meter-bar-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weapon & Ammo Display -->
+      <div class="hud-weapon-card">
+        <div id="hud-weapon-name" class="hud-weapon-name">Pulse Rifle</div>
+        <div id="hud-ammo-value" class="hud-ammo-value">30 / 30</div>
+        <div id="hud-reload-indicator" class="hud-reload-indicator">TAP RELOAD [R]</div>
+      </div>
+    </div>
+
+    <!-- COUNTDOWN OVERLAY -->
+    <div id="countdown-overlay">
+      <div id="countdown-number">3</div>
+    </div>
+
+    <!-- POST-MATCH RESULTS & SCOREBOARD -->
+    <div id="match-end-overlay" class="interactive-ui">
+      <div class="modal-card" style="max-width: 500px;">
+        <h2 id="match-winner-text" style="font-family:'Orbitron', sans-serif; font-size:22px; color:#4ade80; margin-bottom:8px;">MATCH OVER</h2>
+        <p style="font-size:12px; color:#94a3b8; text-transform:uppercase;">ROUND RESULTS</p>
+
+        <table class="scoreboard-table">
+          <thead>
+            <tr>
+              <th>RANK</th>
+              <th>PILOT</th>
+              <th>KILLS</th>
+              <th>DEATHS</th>
+              <th>SCORE</th>
+            </tr>
+          </thead>
+          <tbody id="scoreboard-table-body"></tbody>
+        </table>
+
+        <button id="btn-rematch" class="btn btn-primary" onclick="window.location.reload()">RETURN TO LOBBY</button>
+      </div>
+    </div>
+
+    <!-- MOBILE TOUCH CONTROLS LAYER -->
+    <div id="touch-controls-layer">
+      <!-- Left joystick touch zone -->
+      <div id="joystick-touch-zone"></div>
+      <div id="joystick-base">
+        <div id="joystick-thumb"></div>
+      </div>
+
+      <!-- Right aim touch zone -->
+      <div id="aim-touch-zone"></div>
+
+      <!-- Action buttons -->
+      <div id="btn-touch-boost" class="touch-action-btn">BOOST</div>
+      <div id="btn-touch-jump" class="touch-action-btn">JUMP</div>
+      <div id="btn-touch-fire" class="touch-action-btn">FIRE</div>
+      <div id="btn-touch-reload" class="touch-action-btn">RELOAD</div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

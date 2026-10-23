@@ -1,0 +1,14 @@
+{
+  "name": "@jetpack-arena/shared",
+  "version": "1.0.0",
+  "description": "Shared protocols, types, and constants for Jetpack Arena",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
