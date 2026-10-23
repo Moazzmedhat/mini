@@ -25,15 +25,17 @@ export class ArenaScene extends Phaser.Scene {
   private playerSprites = new Map<string, PlayerSprite>();
   private particles!: ParticleManager;
   private projectileGfx!: Phaser.GameObjects.Graphics;
+  private crosshairSprite!: Phaser.GameObjects.Image;
 
   private latestSnapshot: GameSnapshot | null = null;
   private isSocketBound = false;
   private localPlayerSprite: PlayerSprite | null = null;
 
-  // Background and platform graphics
+  // Background, parallax, and platform graphics
   private bgGfx!: Phaser.GameObjects.Graphics;
   private platformGfx!: Phaser.GameObjects.Graphics;
   private detailGfx!: Phaser.GameObjects.Graphics;
+  private clouds: Phaser.GameObjects.Image[] = [];
 
   // Callbacks to update HTML HUD
   public onLocalPlayerUpdate?: (player: PlayerState) => void;
@@ -42,6 +44,61 @@ export class ArenaScene extends Phaser.Scene {
 
   constructor() {
     super({ key: 'ArenaScene' });
+  }
+
+  public preload(): void {
+    // 1. Soldier Character Sprites
+    this.load.image('soldier_idle', '/assets/characters/soldier/idle.png');
+    this.load.image('soldier_walk1', '/assets/characters/soldier/walk1.png');
+    this.load.image('soldier_walk2', '/assets/characters/soldier/walk2.png');
+    this.load.image('soldier_jump', '/assets/characters/soldier/jump.png');
+    this.load.image('soldier_fall', '/assets/characters/soldier/fall.png');
+    this.load.image('soldier_hurt', '/assets/characters/soldier/hurt.png');
+    this.load.image('soldier_duck', '/assets/characters/soldier/duck.png');
+    this.load.image('soldier_action1', '/assets/characters/soldier/action1.png');
+
+    // 2. Player (Hero) Character Sprites
+    this.load.image('player_idle', '/assets/characters/player/idle.png');
+    this.load.image('player_walk1', '/assets/characters/player/walk1.png');
+    this.load.image('player_walk2', '/assets/characters/player/walk2.png');
+    this.load.image('player_jump', '/assets/characters/player/jump.png');
+    this.load.image('player_fall', '/assets/characters/player/fall.png');
+    this.load.image('player_hurt', '/assets/characters/player/hurt.png');
+    this.load.image('player_duck', '/assets/characters/player/duck.png');
+    this.load.image('player_action1', '/assets/characters/player/action1.png');
+
+    // 3. Weapons & Ammunition
+    this.load.image('weapon_rifle', '/assets/weapons/rifle.png');
+    this.load.image('weapon_shotgun', '/assets/weapons/shotgun.png');
+    this.load.image('weapon_rocketlauncher', '/assets/weapons/rocketlauncher.png');
+    this.load.image('ammo_rifle', '/assets/weapons/ammo_rifle.png');
+    this.load.image('ammo_shotgun', '/assets/weapons/ammo_shotgun.png');
+    this.load.image('ammo_rocket', '/assets/weapons/ammo_rocket.png');
+
+    // 4. Effects & Particles
+    this.load.image('fx_flame_01', '/assets/effects/flame_01.png');
+    this.load.image('fx_flame_02', '/assets/effects/flame_02.png');
+    this.load.image('fx_muzzle', '/assets/effects/muzzle_01.png');
+    this.load.image('fx_smoke', '/assets/effects/smoke_01.png');
+    this.load.image('fx_spark', '/assets/effects/spark_01.png');
+    this.load.image('fx_circle', '/assets/effects/circle_01.png');
+
+    // 5. Parallax Environment
+    this.load.image('cloud1', '/assets/maps/cloud1.png');
+    this.load.image('cloud2', '/assets/maps/cloud2.png');
+    this.load.image('cloud3', '/assets/maps/cloud3.png');
+
+    // 6. UI & Crosshair
+    this.load.image('crosshair', '/assets/ui/crosshair_blue.png');
+
+    // 7. Audio Sound Effects
+    this.load.audio('sfx_rifle', '/assets/audio/laser_rifle.ogg');
+    this.load.audio('sfx_shotgun', '/assets/audio/shotgun_fire.ogg');
+    this.load.audio('sfx_jump', '/assets/audio/jump.ogg');
+    this.load.audio('sfx_reload', '/assets/audio/reload.ogg');
+    this.load.audio('sfx_kill', '/assets/audio/kill_fanfare.ogg');
+    this.load.audio('sfx_hit', '/assets/audio/hit.ogg');
+    this.load.audio('sfx_explosion', '/assets/audio/explosion.ogg');
   }
 
   public init(data?: { socket?: Socket; inputController?: InputController }): void {
@@ -64,28 +121,34 @@ export class ArenaScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, this.map.width, this.map.height);
     this.physics.world.setBounds(0, 0, this.map.width, this.map.height);
 
-    // Initial camera position centered on the middle of the arena
+    // Initial camera position centered on central decks
     this.cameras.main.centerOn(1200, 750);
     this.cameras.main.setZoom(1.0);
 
-    // 2. Render Environment, Platforms, & Details
+    // 2. Render Environment, Sky, and Platforms
     this.bgGfx = this.add.graphics().setDepth(0);
     this.detailGfx = this.add.graphics().setDepth(2);
     this.platformGfx = this.add.graphics().setDepth(5);
 
     this.renderEnvironment();
+    this.spawnParallaxClouds();
     this.renderPlatforms();
 
     // 3. Projectile and Particle Layers
     this.projectileGfx = this.add.graphics().setDepth(15);
     this.particles = new ParticleManager(this);
 
-    // 4. Bind socket events if socket already provided
+    // 4. In-Game Aim Crosshair
+    this.crosshairSprite = this.add.image(1200, 750, 'crosshair');
+    this.crosshairSprite.setDepth(25);
+    this.crosshairSprite.setDisplaySize(24, 24);
+
+    // 5. Bind socket events if socket already provided
     if (this.socket) {
       this.bindSocketEvents();
     }
 
-    // 5. Send input loop (30 FPS)
+    // 6. Send input loop (30 FPS)
     this.time.addEvent({
       delay: 33,
       loop: true,
@@ -109,6 +172,22 @@ export class ArenaScene extends Phaser.Scene {
     this.socket.on(EVENTS.COMBAT_EVENT, (event: CombatEvent) => {
       this.handleCombatEvent(event);
     });
+  }
+
+  private spawnParallaxClouds(): void {
+    const cloudKeys = ['cloud1', 'cloud2', 'cloud3'];
+    for (let i = 0; i < 8; i++) {
+      const cx = 150 + i * 290;
+      const cy = 120 + ((i * 47) % 280);
+      const key = cloudKeys[i % cloudKeys.length];
+      if (this.textures.exists(key)) {
+        const cloud = this.add.image(cx, cy, key);
+        cloud.setDepth(1);
+        cloud.setAlpha(0.45);
+        cloud.setScale(0.8 + ((i * 13) % 4) * 0.15);
+        this.clouds.push(cloud);
+      }
+    }
   }
 
   private renderEnvironment(): void {
@@ -154,7 +233,7 @@ export class ArenaScene extends Phaser.Scene {
 
     // Lethal Abyss warning line at the bottom
     this.detailGfx.clear();
-    this.detailGfx.lineStyle(3, 0xef4444, 0.8);
+    this.detailGfx.lineStyle(3, 0xef4444, 0.85);
     this.detailGfx.lineBetween(0, this.map.deathY, w, this.map.deathY);
     this.detailGfx.fillStyle(0xef4444, 0.15);
     this.detailGfx.fillRect(0, this.map.deathY, w, h - this.map.deathY);
@@ -175,7 +254,7 @@ export class ArenaScene extends Phaser.Scene {
         this.platformGfx.lineBetween(px, plat.y + plat.h, px + 30, plat.y + plat.h + 60);
       }
 
-      // 2. Main Platform Body (Heavy armored metal deck)
+      // 2. Main Platform Body (Armored metal deck)
       this.platformGfx.fillStyle(0x1e293b, 1);
       this.platformGfx.fillRoundedRect(plat.x, plat.y, plat.w, plat.h, 4);
 
@@ -203,13 +282,11 @@ export class ArenaScene extends Phaser.Scene {
     const stripeWidth = 8;
     const count = Math.min(4, Math.floor(plat.w / 16));
 
-    // Left edge hazard block
     for (let i = 0; i < count; i++) {
       this.platformGfx.fillStyle(i % 2 === 0 ? 0xfacc15 : 0x0f172a, 0.9);
       this.platformGfx.fillRect(plat.x + i * stripeWidth, plat.y + 8, stripeWidth, Math.min(10, plat.h - 8));
     }
 
-    // Right edge hazard block
     for (let i = 0; i < count; i++) {
       this.platformGfx.fillStyle(i % 2 === 0 ? 0xfacc15 : 0x0f172a, 0.9);
       this.platformGfx.fillRect(plat.x + plat.w - (i + 1) * stripeWidth, plat.y + 8, stripeWidth, Math.min(10, plat.h - 8));
@@ -220,6 +297,11 @@ export class ArenaScene extends Phaser.Scene {
     if (!this.socket || !this.inputCtrl || !this.socket.connected) return;
     const input = this.inputCtrl.pollInput();
     this.socket.emit(EVENTS.INPUT_FRAME, input);
+
+    // Muzzle flash on fire
+    if (input.fire && this.localPlayerSprite) {
+      this.localPlayerSprite.triggerMuzzleFlash();
+    }
   }
 
   private handleCombatEvent(event: CombatEvent): void {
@@ -231,25 +313,42 @@ export class ArenaScene extends Phaser.Scene {
     const isLocalVictim = Boolean(localId && event.victimId === localId);
     const isLocalAttacker = Boolean(localId && event.attackerId === localId);
 
+    // Trigger visual hit reaction on sprite
+    const victimSprite = this.playerSprites.get(event.victimId);
+    if (victimSprite) {
+      victimSprite.triggerHurt();
+    }
+
     switch (event.type) {
       case 'hit':
-        if (isLocalVictim) {
+        if (this.sound.get('sfx_hit')) {
+          this.sound.play('sfx_hit', { volume: 0.6 });
+        } else {
           soundManager.playHit();
-          this.cameras.main.shake(120, 0.008);
         }
-        if (isLocalAttacker) {
-          soundManager.playHit();
+
+        if (isLocalVictim) {
+          this.cameras.main.shake(120, 0.008);
         }
         break;
 
       case 'kill':
         if (isLocalAttacker) {
-          soundManager.playKill();
+          if (this.sound.get('sfx_kill')) {
+            this.sound.play('sfx_kill', { volume: 0.7 });
+          } else {
+            soundManager.playKill();
+          }
         }
         break;
 
       case 'explosion':
-        soundManager.playExplosion();
+        if (this.sound.get('sfx_explosion')) {
+          this.sound.play('sfx_explosion', { volume: 0.8 });
+        } else {
+          soundManager.playExplosion();
+        }
+
         if (event.x !== undefined && event.y !== undefined) {
           this.particles.emitExplosion(event.x, event.y, 85);
           if (this.localPlayerSprite) {
@@ -263,7 +362,11 @@ export class ArenaScene extends Phaser.Scene {
 
       case 'reload':
         if (isLocalVictim) {
-          soundManager.playReload();
+          if (this.sound.get('sfx_reload')) {
+            this.sound.play('sfx_reload', { volume: 0.6 });
+          } else {
+            soundManager.playReload();
+          }
         }
         break;
     }
@@ -271,6 +374,14 @@ export class ArenaScene extends Phaser.Scene {
 
   public update(time: number, delta: number): void {
     const dt = delta / 1000;
+
+    // Slowly scroll clouds across sky
+    for (const cloud of this.clouds) {
+      cloud.x += 8 * dt;
+      if (cloud.x > this.map.width + 100) {
+        cloud.x = -100;
+      }
+    }
 
     // 1. Process latest server snapshot
     if (this.latestSnapshot) {
@@ -298,7 +409,6 @@ export class ArenaScene extends Phaser.Scene {
           }
         }
 
-        // If local sprite wasn't bound yet (e.g. socket ID matched on subsequent snapshot)
         if (isLocal && !this.localPlayerSprite) {
           this.localPlayerSprite = sprite;
           this.cameras.main.startFollow(sprite, true, 0.15, 0.15);
@@ -312,6 +422,13 @@ export class ArenaScene extends Phaser.Scene {
             this.onLocalPlayerUpdate(pState);
           }
           soundManager.setJetpackThrust(pState.boosting && !pState.isDead);
+
+          // Update crosshair position in world coordinates
+          const aimDist = 90;
+          this.crosshairSprite.setPosition(
+            pState.x + Math.cos(pState.aimAngle) * aimDist,
+            pState.y + Math.sin(pState.aimAngle) * aimDist
+          );
         }
       }
 
@@ -339,25 +456,30 @@ export class ArenaScene extends Phaser.Scene {
 
     for (const proj of projectiles) {
       if (proj.weaponType === 'rocket') {
+        // Draw rocket missile sprite with exhaust flame trail
+        const angle = Math.atan2(proj.vy, proj.vx);
+        const trailX = proj.x - Math.cos(angle) * 14;
+        const trailY = proj.y - Math.sin(angle) * 14;
+
+        this.projectileGfx.fillStyle(0xf97316, 0.85);
+        this.projectileGfx.fillCircle(trailX, trailY, 5);
+
+        // Rocket body
         this.projectileGfx.fillStyle(0x10b981, 1);
         this.projectileGfx.fillCircle(proj.x, proj.y, proj.radius);
         this.projectileGfx.lineStyle(2, 0x34d399, 1);
         this.projectileGfx.strokeCircle(proj.x, proj.y, proj.radius);
-
-        const angle = Math.atan2(proj.vy, proj.vx);
-        const trailX = proj.x - Math.cos(angle) * 12;
-        const trailY = proj.y - Math.sin(angle) * 12;
-        this.projectileGfx.fillStyle(0xf97316, 0.85);
-        this.projectileGfx.fillCircle(trailX, trailY, 5);
       } else if (proj.weaponType === 'shotgun') {
+        // Golden pellets
         this.projectileGfx.fillStyle(0xfacc15, 1);
         this.projectileGfx.fillCircle(proj.x, proj.y, proj.radius);
-        this.projectileGfx.fillStyle(0xffffff, 0.8);
+        this.projectileGfx.fillStyle(0xffffff, 0.85);
         this.projectileGfx.fillCircle(proj.x, proj.y, proj.radius * 0.5);
       } else {
+        // Pulse Rifle laser bolt
         const angle = Math.atan2(proj.vy, proj.vx);
-        const tailX = proj.x - Math.cos(angle) * 20;
-        const tailY = proj.y - Math.sin(angle) * 20;
+        const tailX = proj.x - Math.cos(angle) * 22;
+        const tailY = proj.y - Math.sin(angle) * 22;
 
         this.projectileGfx.lineStyle(3.5, 0x38bdf8, 1);
         this.projectileGfx.lineBetween(tailX, tailY, proj.x, proj.y);
