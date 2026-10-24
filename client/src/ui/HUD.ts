@@ -40,30 +40,127 @@ export class HUD {
     this.setupFullscreen();
   }
 
-  private setupFullscreen(): void {
-    if (this.btnFullscreen) {
-      this.btnFullscreen.addEventListener('click', () => {
-        this.toggleFullscreen();
-      });
-    }
+  private lastFsToggle = 0;
 
-    const lobbyFs = document.getElementById('btn-lobby-fullscreen');
-    if (lobbyFs) {
-      lobbyFs.addEventListener('click', () => {
+  private setupFullscreen(): void {
+    const bindBtn = (btn: HTMLElement | null) => {
+      if (!btn) return;
+      const handler = (e: Event) => {
+        const now = Date.now();
+        if (now - this.lastFsToggle < 300) return;
+        this.lastFsToggle = now;
+        e.preventDefault();
         this.toggleFullscreen();
-      });
-    }
+      };
+      btn.addEventListener('pointerup', handler);
+      btn.addEventListener('click', handler);
+    };
+
+    bindBtn(this.btnFullscreen);
+    bindBtn(document.getElementById('btn-lobby-fullscreen'));
+
+    const onFsChange = () => {
+      this.updateFullscreenButtons(this.isFullscreen());
+      window.dispatchEvent(new Event('resize'));
+    };
+
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    document.addEventListener('mozfullscreenchange', onFsChange);
+    document.addEventListener('MSFullscreenChange', onFsChange);
+  }
+
+  public isFullscreen(): boolean {
+    const doc = document as any;
+    return Boolean(
+      doc.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.mozFullScreenElement ||
+      doc.msFullscreenElement ||
+      document.body.classList.contains('pseudo-fullscreen')
+    );
   }
 
   public toggleFullscreen(): void {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => {
-        console.warn('Fullscreen request failed:', err);
-      });
-    } else {
-      document.exitFullscreen().catch((err) => {
+    const doc = document as any;
+    const elem = document.documentElement as any;
+
+    if (this.isFullscreen()) {
+      document.body.classList.remove('pseudo-fullscreen');
+      try {
+        if (typeof doc.exitFullscreen === 'function') {
+          doc.exitFullscreen().catch(() => {});
+        } else if (typeof doc.webkitExitFullscreen === 'function') {
+          doc.webkitExitFullscreen();
+        } else if (typeof doc.mozCancelFullScreen === 'function') {
+          doc.mozCancelFullScreen();
+        } else if (typeof doc.msExitFullscreen === 'function') {
+          doc.msExitFullscreen();
+        }
+      } catch (err) {
         console.warn('Exit fullscreen failed:', err);
-      });
+      }
+      this.updateFullscreenButtons(false);
+      window.dispatchEvent(new Event('resize'));
+      return;
+    }
+
+    // Try standard and vendor-prefixed requestFullscreen synchronously
+    let requested = false;
+    try {
+      const requestMethod =
+        elem.requestFullscreen ||
+        elem.webkitRequestFullscreen ||
+        elem.webkitRequestFullScreen ||
+        elem.mozRequestFullScreen ||
+        elem.msRequestFullscreen;
+
+      if (typeof requestMethod === 'function') {
+        const promise = requestMethod.call(elem, { navigationUI: 'hide' });
+        if (promise && typeof promise.catch === 'function') {
+          promise.catch((err: any) => {
+            console.warn('Native fullscreen rejected:', err);
+            this.enablePseudoFullscreen();
+          });
+        }
+        requested = true;
+      }
+    } catch (err) {
+      console.warn('Native requestFullscreen error:', err);
+    }
+
+    // Attempt orientation lock to landscape for mobile
+    try {
+      const orientation = (screen.orientation || (screen as any).mozOrientation || (screen as any).msOrientation) as any;
+      if (orientation && typeof orientation.lock === 'function') {
+        orientation.lock('landscape').catch(() => {});
+      }
+    } catch {
+      // Ignore unsupported orientation locks
+    }
+
+    // Mobile fallback (iOS Safari where requestFullscreen on HTML elements is not supported)
+    if (!requested) {
+      this.enablePseudoFullscreen();
+    }
+
+    this.updateFullscreenButtons(true);
+  }
+
+  private enablePseudoFullscreen(): void {
+    document.body.classList.add('pseudo-fullscreen');
+    window.scrollTo(0, 1);
+    window.dispatchEvent(new Event('resize'));
+  }
+
+  private updateFullscreenButtons(isFs: boolean): void {
+    const text = isFs ? '🗗 EXIT FULLSCREEN' : '⛶ FULLSCREEN';
+    if (this.btnFullscreen) {
+      this.btnFullscreen.textContent = text;
+    }
+    const lobbyFs = document.getElementById('btn-lobby-fullscreen');
+    if (lobbyFs) {
+      lobbyFs.textContent = text;
     }
   }
 
