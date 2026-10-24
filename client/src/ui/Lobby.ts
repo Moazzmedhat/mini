@@ -133,7 +133,12 @@ export class LobbyUI {
     }
 
     // Create Room
+    let lastCreateClick = 0;
     this.btnCreate.addEventListener('click', () => {
+      const now = Date.now();
+      if (now - lastCreateClick < 500) return;
+      lastCreateClick = now;
+
       soundManager.unlock();
       const callsign = this.getSanitizedCallsign();
       const mapId = this.mapSelect?.value || 'outpost_delta';
@@ -149,7 +154,12 @@ export class LobbyUI {
     });
 
     // Join Room
+    let lastJoinClick = 0;
     this.btnJoin.addEventListener('click', () => {
+      const now = Date.now();
+      if (now - lastJoinClick < 500) return;
+      lastJoinClick = now;
+
       soundManager.unlock();
       const callsign = this.getSanitizedCallsign();
       const code = this.roomCodeInput.value.trim().toUpperCase();

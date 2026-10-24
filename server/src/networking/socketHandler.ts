@@ -17,24 +17,25 @@ interface RateTracker {
 export function setupSocketHandlers(io: Server, roomManager: RoomManager) {
   const rateLimits = new Map<string, RateTracker>();
 
-  function checkRateLimit(socketId: string, maxPerSecond = 60): boolean {
+  function checkRateLimit(socketId: string, action: string, maxPerWindow = 60, windowMs = 1000): boolean {
+    const key = `${socketId}:${action}`;
     const now = Date.now();
-    let tracker = rateLimits.get(socketId);
+    let tracker = rateLimits.get(key);
     if (!tracker || now > tracker.resetAt) {
-      tracker = { count: 1, resetAt: now + 1000 };
-      rateLimits.set(socketId, tracker);
+      tracker = { count: 1, resetAt: now + windowMs };
+      rateLimits.set(key, tracker);
       return true;
     }
     tracker.count++;
-    return tracker.count <= maxPerSecond;
+    return tracker.count <= maxPerWindow;
   }
 
   io.on('connection', (socket: Socket) => {
-    // 1. Create Room
+    // 1. Create Room (Allow 30 per 5 seconds)
     socket.on(EVENTS.ROOM_CREATE, (payload: RoomCreatePayload) => {
       try {
-        if (!checkRateLimit(socket.id, 5)) {
-          socket.emit(EVENTS.ROOM_ERROR, { message: 'Too many requests. Please slow down.' });
+        if (!checkRateLimit(socket.id, 'create_room', 30, 5000)) {
+          socket.emit(EVENTS.ROOM_ERROR, { message: 'Too many create requests. Please wait a moment.' });
           return;
         }
 
@@ -51,11 +52,11 @@ export function setupSocketHandlers(io: Server, roomManager: RoomManager) {
       }
     });
 
-    // 2. Join Room
+    // 2. Join Room (Allow 40 per 5 seconds)
     socket.on(EVENTS.ROOM_JOIN, (payload: RoomJoinPayload) => {
       try {
-        if (!checkRateLimit(socket.id, 10)) {
-          socket.emit(EVENTS.ROOM_ERROR, { message: 'Too many requests. Please slow down.' });
+        if (!checkRateLimit(socket.id, 'join_room', 40, 5000)) {
+          socket.emit(EVENTS.ROOM_ERROR, { message: 'Too many join requests. Please wait a moment.' });
           return;
         }
 
@@ -99,9 +100,9 @@ export function setupSocketHandlers(io: Server, roomManager: RoomManager) {
       room.startCountdown();
     });
 
-    // 5. Input Frame
+    // 5. Input Frame (Allow up to 120 frames per second to handle network jitter/bursts)
     socket.on(EVENTS.INPUT_FRAME, (input: PlayerInputFrame) => {
-      if (!checkRateLimit(socket.id, 65)) {
+      if (!checkRateLimit(socket.id, 'input', 120, 1000)) {
         return; // drop spam frames
       }
 
@@ -134,7 +135,11 @@ export function setupSocketHandlers(io: Server, roomManager: RoomManager) {
 
     // 9. Disconnect
     socket.on('disconnect', () => {
-      rateLimits.delete(socket.id);
+      for (const key of rateLimits.keys()) {
+        if (key.startsWith(socket.id)) {
+          rateLimits.delete(key);
+        }
+      }
       roomManager.leaveRoom(socket);
     });
   });
