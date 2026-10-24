@@ -441,35 +441,78 @@
       color: #f8fafc;
     }
 
-    /* Health & Fuel meters bottom left */
+    /* Health, Fuel & Ammo meters (Compact Bottom-Left Widget) */
     .hud-meters-container {
       position: absolute;
-      bottom: 14px;
-      left: 14px;
+      bottom: 10px;
+      left: 10px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      background: rgba(15, 23, 42, 0.85);
-      padding: 10px 14px;
-      border-radius: 12px;
+      gap: 3px;
+      background: rgba(15, 23, 42, 0.88);
+      padding: 6px 10px;
+      border-radius: 8px;
       border: 1px solid #1e293b;
-      width: 220px;
+      width: 145px;
+      z-index: 20;
+      backdrop-filter: blur(4px);
+    }
+
+    .hud-ammo-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+      padding-bottom: 2px;
+      margin-bottom: 1px;
+    }
+
+    .hud-weapon-name {
+      font-size: 9px;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .hud-ammo-value {
+      font-family: 'Orbitron', monospace;
+      font-size: 13px;
+      font-weight: 900;
+      color: #38bdf8;
+    }
+
+    .hud-reload-indicator {
+      font-size: 8px;
+      font-weight: 900;
+      color: #ef4444;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: none;
+      text-align: right;
+    }
+
+    .meter-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
 
     .meter-label-row {
       display: flex;
       justify-content: space-between;
-      font-size: 11px;
+      font-size: 8.5px;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
+      line-height: 1;
     }
 
     .meter-bar-track {
       width: 100%;
-      height: 8px;
+      height: 5px;
       background: #334155;
-      border-radius: 4px;
+      border-radius: 3px;
       overflow: hidden;
     }
 
@@ -487,7 +530,7 @@
       background-color: #06b6d4;
     }
 
-    /* IN-GAME WEAPON CART DOCK (Bottom Center) */
+    /* IN-GAME WEAPON CART DOCK (Bottom Center - Desktop Only) */
     #hud-weapon-cart {
       position: absolute;
       bottom: 14px;
@@ -501,6 +544,13 @@
       border-radius: 12px;
       backdrop-filter: blur(6px);
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Hide large bottom weapon cart on mobile/touch screens */
+    @media (max-width: 1024px), (pointer: coarse) {
+      #hud-weapon-cart {
+        display: none !important;
+      }
     }
 
     .weapon-cart-slot {
@@ -554,35 +604,10 @@
       margin-top: 2px;
     }
 
-    /* Weapon status bottom right */
+    /* Deprecated bottom-right card - hidden since ammo is in bottom-left widget */
     .hud-weapon-card {
-      position: absolute;
-      bottom: 14px;
-      right: 14px;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid #1e293b;
-      border-radius: 12px;
-      padding: 10px 14px;
-      text-align: right;
+      display: none !important;
     }
-
-    .hud-weapon-name {
-      font-size: 11px;
-      font-weight: 700;
-      color: #94a3b8;
-      text-transform: uppercase;
-    }
-
-    .hud-ammo-value {
-      font-family: 'Orbitron', monospace;
-      font-size: 18px;
-      font-weight: 900;
-      color: #38bdf8;
-    }
-
-    .hud-reload-indicator {
-      font-size: 10px;
-      color: #ef4444;
       font-weight: 800;
       display: none;
     }
@@ -790,29 +815,31 @@
       box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
     }
 
-    /* Mobile Weapon Cart Strip */
+    /* Mobile Weapon Cart Strip (Top Left under Arena Time) */
     #touch-weapon-cart {
       position: absolute;
-      bottom: 148px;
-      right: 8px;
+      top: 44px;
+      left: 12px;
+      bottom: auto;
+      right: auto;
       display: flex;
       flex-direction: row;
-      gap: 4px;
+      gap: 3px;
       pointer-events: auto;
-      z-index: 16;
-      background: rgba(15, 23, 42, 0.85);
-      padding: 4px 6px;
-      border-radius: 10px;
+      z-index: 25;
+      background: rgba(15, 23, 42, 0.88);
+      padding: 3px 5px;
+      border-radius: 8px;
       border: 1px solid #334155;
       backdrop-filter: blur(4px);
     }
 
     .touch-weapon-slot {
-      width: 44px;
-      height: 40px;
-      border-radius: 6px;
+      width: 34px;
+      height: 30px;
+      border-radius: 5px;
       background: #1e293b;
-      border: 1.5px solid #334155;
+      border: 1px solid #334155;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -822,22 +849,25 @@
     }
 
     .touch-weapon-slot.active {
-      background: rgba(56, 189, 248, 0.2);
+      background: rgba(56, 189, 248, 0.25);
       border-color: #38bdf8;
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
-      transform: scale(1.08);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+      transform: scale(1.05);
     }
 
     .touch-weapon-slot img {
-      width: 28px;
-      height: 16px;
+      width: 22px;
+      height: 12px;
       object-fit: contain;
     }
 
     .touch-weapon-slot span {
-      font-size: 7px;
+      font-size: 6.5px;
       font-weight: 800;
       color: #94a3b8;
+      text-transform: uppercase;
+      margin-top: 1px;
+    }
       text-transform: uppercase;
       margin-top: 1px;
     }
@@ -1095,9 +1125,17 @@
       <!-- Kill Feed -->
       <div id="kill-feed-container"></div>
 
-      <!-- Player Health & Jetpack Fuel meters -->
+      <!-- Player Health, Jetpack Fuel & Ammo meters (Compact Bottom-Left Widget) -->
       <div class="hud-meters-container">
-        <div>
+        <!-- Weapon Name & Ammo Row -->
+        <div class="hud-ammo-row">
+          <span id="hud-weapon-name" class="hud-weapon-name">Pulse Rifle</span>
+          <span id="hud-ammo-value" class="hud-ammo-value">30 / 30</span>
+        </div>
+        <div id="hud-reload-indicator" class="hud-reload-indicator">RELOAD!</div>
+
+        <!-- Health Meter -->
+        <div class="meter-block">
           <div class="meter-label-row">
             <span style="color:#22c55e;">HEALTH</span>
             <span id="hud-health-value">100</span>
@@ -1107,9 +1145,10 @@
           </div>
         </div>
 
-        <div>
+        <!-- Fuel Meter -->
+        <div class="meter-block">
           <div class="meter-label-row">
-            <span style="color:#06b6d4;">JETPACK FUEL</span>
+            <span style="color:#06b6d4;">FUEL</span>
             <span id="hud-fuel-value">100%</span>
           </div>
           <div class="meter-bar-track">
@@ -1152,12 +1191,7 @@
         </div>
       </div>
 
-      <!-- Current Ammo / Weapon Card -->
-      <div class="hud-weapon-card">
-        <div id="hud-weapon-name" class="hud-weapon-name">Pulse Rifle</div>
-        <div id="hud-ammo-value" class="hud-ammo-value">30 / 30</div>
-        <div id="hud-reload-indicator" class="hud-reload-indicator">TAP RELOAD [R]</div>
-      </div>
+
     </div>
 
     <!-- COUNTDOWN OVERLAY -->

@@ -381,6 +381,11 @@ export class InputController {
     if (this.touchContainer) {
       const hasTouch = Boolean('ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0));
       this.touchContainer.style.display = (show && hasTouch) ? 'block' : 'none';
+
+      const desktopCart = document.getElementById('hud-weapon-cart');
+      if (desktopCart) {
+        desktopCart.style.display = (show && hasTouch) ? 'none' : 'flex';
+      }
     }
   }
 }

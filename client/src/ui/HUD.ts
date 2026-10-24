@@ -178,7 +178,7 @@ export class HUD {
   }
 
   public highlightWeaponSlot(weapon: WeaponType): void {
-    document.querySelectorAll('.weapon-cart-slot').forEach((slot) => {
+    document.querySelectorAll('.weapon-cart-slot, .touch-weapon-slot').forEach((slot) => {
       if ((slot as HTMLElement).dataset.weapon === weapon) {
         slot.classList.add('active');
       } else {
