@@ -115,6 +115,7 @@ export class GameSimulation {
   public triggerReload(id: string): void {
     const player = this.players.get(id);
     if (!player || player.isDead || player.isReloading) return;
+    if (player.currentWeapon === 'knife') return; // Melee doesn't reload
     const cfg = WEAPONS[player.currentWeapon];
     if (player.ammo >= cfg.magazineSize) return;
 
@@ -234,6 +235,49 @@ export class GameSimulation {
     const lastFire = this.lastFireTimes.get(player.id) || 0;
 
     if (now - lastFire < cfg.fireCooldownMs) {
+      return;
+    }
+
+    // Melee attack logic (Combat Knife)
+    if (player.currentWeapon === 'knife') {
+      this.lastFireTimes.set(player.id, now);
+      player.ammo = 999;
+
+      const meleeReach = cfg.maxDistance || 85;
+      const meleeArc = Math.PI * 0.75; // 135-degree forward slash cone
+      let hitCount = 0;
+
+      for (const [targetId, target] of this.players) {
+        if (targetId === player.id || target.isDead || target.spawnProtected) continue;
+
+        const dx = target.x - player.x;
+        const dy = (target.y - 10) - (player.y - 10);
+        const dist = Math.hypot(dx, dy);
+
+        if (dist <= meleeReach) {
+          const targetAngle = Math.atan2(dy, dx);
+          let angleDiff = Math.abs(targetAngle - player.aimAngle);
+          while (angleDiff > Math.PI) angleDiff = Math.abs(angleDiff - Math.PI * 2);
+
+          if (angleDiff <= meleeArc / 2) {
+            this.applyDamage(target, cfg.damage, player.id, 'knife');
+            hitCount++;
+          }
+        }
+      }
+
+      // Add melee slash event for client animation & sound
+      this.pendingEvents.push({
+        id: `ev_slash_${Date.now()}_${Math.random()}`,
+        type: 'hit',
+        attackerId: player.id,
+        attackerName: player.name,
+        victimId: hitCount > 0 ? 'enemy' : '',
+        weaponType: 'knife',
+        damage: hitCount > 0 ? cfg.damage : 0,
+        x: player.x + Math.cos(player.aimAngle) * 36,
+        y: player.y - 6 + Math.sin(player.aimAngle) * 36,
+      });
       return;
     }
 

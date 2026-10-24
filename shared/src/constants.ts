@@ -38,7 +38,7 @@ export const COMBAT = {
   COUNTDOWN_SEC: 3,
 };
 
-export type WeaponType = 'rifle' | 'shotgun' | 'rocket' | 'sniper' | 'uzi' | 'pistol';
+export type WeaponType = 'rifle' | 'shotgun' | 'rocket' | 'sniper' | 'uzi' | 'pistol' | 'knife';
 
 export interface WeaponConfig {
   id: WeaponType;
@@ -56,6 +56,20 @@ export interface WeaponConfig {
 }
 
 export const WEAPONS: Record<WeaponType, WeaponConfig> = {
+  knife: {
+    id: 'knife',
+    name: 'Combat Knife',
+    damage: 55,             // High close-quarters damage
+    fireCooldownMs: 280,    // ~3.5 slashes per second
+    speed: 0,               // Melee: no bullet projectile
+    maxDistance: 85,        // 85px melee range
+    magazineSize: 999,      // Infinite / no ammo needed
+    reloadTimeMs: 0,
+    pelletCount: 0,
+    spreadAngle: 0,
+    projectileRadius: 0,
+    splashRadius: 0,
+  },
   rifle: {
     id: 'rifle',
     name: 'Pulse Rifle',

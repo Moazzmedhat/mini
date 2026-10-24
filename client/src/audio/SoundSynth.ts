@@ -66,6 +66,29 @@ export class SoundSynth {
     osc.stop(now + 0.12);
   }
 
+  // Melee Knife Slash (sharp whoosh / blade swing)
+  public playSlash(): void {
+    if (this.isMuted || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.exponentialRampToValueAtTime(140, now + 0.1);
+
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    osc.stop(now + 0.1);
+
+    this.playNoiseBurst(0.08, 0.25, 2200);
+  }
+
   // Shotgun blast (deep punch + noise)
   public playShotgun(): void {
     if (this.isMuted || !this.ctx || !this.masterGain) return;

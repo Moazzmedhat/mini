@@ -155,6 +155,12 @@ export class PlayerSprite extends Phaser.GameObjects.Container {
         h = 15;
         muzzleX = 18;
         break;
+      case 'knife':
+        texKey = 'weapon_knife';
+        w = 26;
+        h = 12;
+        muzzleX = 18;
+        break;
     }
 
     if (this.scene.textures.exists(texKey)) {
@@ -162,6 +168,19 @@ export class PlayerSprite extends Phaser.GameObjects.Container {
       this.weaponSprite.setDisplaySize(w, h);
       this.muzzleFlash.setX(muzzleX);
     }
+  }
+
+  public triggerMeleeSlash(): void {
+    this.scene.tweens.add({
+      targets: this.weaponSprite,
+      x: 18,
+      duration: 65,
+      yoyo: true,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        this.weaponSprite.setX(10);
+      },
+    });
   }
 
   public triggerMuzzleFlash(): void {

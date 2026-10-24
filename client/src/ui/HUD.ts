@@ -211,7 +211,10 @@ export class HUD {
     if (cfg) {
       this.weaponName.textContent = cfg.name;
 
-      if (p.isReloading) {
+      if (p.currentWeapon === 'knife') {
+        this.ammoValue.textContent = 'MELEE';
+        this.reloadPrompt.style.display = 'none';
+      } else if (p.isReloading) {
         this.ammoValue.textContent = `RELOADING...`;
         this.reloadPrompt.style.display = 'block';
       } else {

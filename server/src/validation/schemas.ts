@@ -21,6 +21,6 @@ export const inputFrameSchema = z.object({
   boost: z.boolean(),
   aimAngle: z.number().min(-Math.PI * 2).max(Math.PI * 2),
   fire: z.boolean(),
-  weaponType: z.enum(['rifle', 'shotgun', 'rocket', 'sniper', 'uzi', 'pistol']).optional(),
+  weaponType: z.enum(['rifle', 'shotgun', 'rocket', 'sniper', 'uzi', 'pistol', 'knife']).optional(),
   reload: z.boolean().optional(),
 });

@@ -111,6 +111,11 @@ export class InputController {
         case 'Digit6':
           this.setWeapon('pistol');
           break;
+        case 'Digit7':
+        case 'KeyV':
+        case 'KeyF':
+          this.setWeapon('knife');
+          break;
       }
     });
 

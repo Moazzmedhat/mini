@@ -58,13 +58,14 @@ export class ArenaScene extends Phaser.Scene {
       }
     }
 
-    // 2. All 6 Weapons
+    // 2. All Weapons
     this.load.image('weapon_rifle', '/assets/weapons/rifle.png');
     this.load.image('weapon_shotgun', '/assets/weapons/shotgun.png');
     this.load.image('weapon_rocketlauncher', '/assets/weapons/rocketlauncher.png');
     this.load.image('weapon_sniper', '/assets/weapons/sniper.png');
     this.load.image('weapon_uzi', '/assets/weapons/uzi.png');
     this.load.image('weapon_pistol', '/assets/weapons/pistol.png');
+    this.load.image('weapon_knife', '/assets/weapons/knife.png');
 
     // Ammunition
     this.load.image('ammo_rifle', '/assets/weapons/ammo_rifle.png');
@@ -316,7 +317,11 @@ export class ArenaScene extends Phaser.Scene {
     this.socket.emit(EVENTS.INPUT_FRAME, input);
 
     if (input.fire && this.localPlayerSprite) {
-      this.localPlayerSprite.triggerMuzzleFlash();
+      if (input.weaponType === 'knife') {
+        this.localPlayerSprite.triggerMeleeSlash();
+      } else {
+        this.localPlayerSprite.triggerMuzzleFlash();
+      }
     }
   }
 
@@ -336,10 +341,21 @@ export class ArenaScene extends Phaser.Scene {
 
     switch (event.type) {
       case 'hit':
-        if (this.sound.get('sfx_hit')) {
-          this.sound.play('sfx_hit', { volume: 0.6 });
+        if (event.weaponType === 'knife') {
+          soundManager.playSlash();
+          const attackerSprite = event.attackerId ? this.playerSprites.get(event.attackerId) : null;
+          if (attackerSprite) {
+            attackerSprite.triggerMeleeSlash();
+          }
+          if (event.x !== undefined && event.y !== undefined) {
+            this.particles.emitHitSparks(event.x, event.y, 0xe2e8f0, 10);
+          }
         } else {
-          soundManager.playHit();
+          if (this.sound.get('sfx_hit')) {
+            this.sound.play('sfx_hit', { volume: 0.6 });
+          } else {
+            soundManager.playHit();
+          }
         }
 
         if (isLocalVictim) {

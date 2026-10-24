@@ -25,6 +25,7 @@ All game assets used in **Jetpack Arena** are licensed under the **Creative Comm
   - `shotgun.png` (Combat Spread Shotgun)
   - `rocketlauncher.png` (Heavy Rocket Launcher)
   - `pistol.png` (Sidearm)
+  - `knife.png` (Combat Knife Melee Weapon)
   - `ammo_rifle.png` (Rifle bullet)
   - `ammo_shotgun.png` (Shotgun shell)
   - `ammo_rocket.png` (Rocket projectile)
