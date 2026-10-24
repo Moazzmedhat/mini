@@ -701,7 +701,7 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 50%;
+      width: 45%;
       height: 100%;
       pointer-events: auto;
     }
@@ -710,7 +710,7 @@
       position: absolute;
       top: 0;
       right: 0;
-      width: 50%;
+      width: 55%;
       height: 100%;
       pointer-events: auto;
     }
@@ -739,7 +739,114 @@
       transform: translate(-50%, -50%);
     }
 
-    /* Action buttons on mobile */
+    /* 360 Aim Joystick (replaces FIRE button) */
+    #aim-joystick-base {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+      border: 2.5px solid rgba(239, 68, 68, 0.5);
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+    }
+
+    #aim-joystick-thumb {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ef4444, #dc2626);
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 11px;
+      color: #fff;
+      transition: transform 0.05s ease;
+    }
+
+    #aim-joystick-base.active {
+      border-color: rgba(239, 68, 68, 0.9);
+      background: radial-gradient(circle, rgba(239, 68, 68, 0.25), rgba(239, 68, 68, 0.1));
+    }
+
+    /* Aim direction indicator line */
+    #aim-direction-line {
+      position: absolute;
+      width: 2px;
+      height: 30px;
+      background: rgba(239, 68, 68, 0.8);
+      transform-origin: bottom center;
+      bottom: 50%;
+      left: calc(50% - 1px);
+      pointer-events: none;
+      display: none;
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+    }
+
+    /* Mobile Weapon Cart Strip */
+    #touch-weapon-cart {
+      position: absolute;
+      bottom: 148px;
+      right: 8px;
+      display: flex;
+      flex-direction: row;
+      gap: 4px;
+      pointer-events: auto;
+      z-index: 16;
+      background: rgba(15, 23, 42, 0.85);
+      padding: 4px 6px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      backdrop-filter: blur(4px);
+    }
+
+    .touch-weapon-slot {
+      width: 44px;
+      height: 40px;
+      border-radius: 6px;
+      background: #1e293b;
+      border: 1.5px solid #334155;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .touch-weapon-slot.active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+      transform: scale(1.08);
+    }
+
+    .touch-weapon-slot img {
+      width: 28px;
+      height: 16px;
+      object-fit: contain;
+    }
+
+    .touch-weapon-slot span {
+      font-size: 7px;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-top: 1px;
+    }
+
+    .touch-weapon-slot.active span {
+      color: #38bdf8;
+    }
+
+    /* Reload button */
     .touch-action-btn {
       position: absolute;
       border-radius: 50%;
@@ -760,40 +867,9 @@
       filter: brightness(1.2);
     }
 
-    #btn-touch-boost {
-      bottom: 24px;
-      right: 130px;
-      width: 66px;
-      height: 66px;
-      background: radial-gradient(circle, #f97316, #ea580c);
-      color: #ffffff;
-      box-shadow: 0 0 16px rgba(249, 115, 22, 0.6);
-    }
-
-    #btn-touch-jump {
-      bottom: 96px;
-      right: 140px;
-      width: 56px;
-      height: 56px;
-      background: #1e293b;
-      color: #38bdf8;
-      border-color: #38bdf8;
-    }
-
-    #btn-touch-fire {
-      bottom: 28px;
-      right: 28px;
-      width: 84px;
-      height: 84px;
-      background: radial-gradient(circle, #ef4444, #dc2626);
-      color: #ffffff;
-      font-size: 16px;
-      box-shadow: 0 0 20px rgba(239, 68, 68, 0.7);
-    }
-
     #btn-touch-reload {
-      bottom: 124px;
-      right: 48px;
+      bottom: 86px;
+      right: 148px;
       width: 50px;
       height: 50px;
       background: #1e293b;
@@ -1123,10 +1199,41 @@
       <!-- Right aim touch zone -->
       <div id="aim-touch-zone"></div>
 
-      <!-- Action buttons -->
-      <div id="btn-touch-boost" class="touch-action-btn">BOOST</div>
-      <div id="btn-touch-jump" class="touch-action-btn">JUMP</div>
-      <div id="btn-touch-fire" class="touch-action-btn">FIRE</div>
+      <!-- 360° Aim Joystick (replaces FIRE button) -->
+      <div id="aim-joystick-base">
+        <div id="aim-direction-line"></div>
+        <div id="aim-joystick-thumb">AIM</div>
+      </div>
+
+      <!-- Mobile Weapon Cart -->
+      <div id="touch-weapon-cart">
+        <div class="touch-weapon-slot active" data-weapon="rifle">
+          <img src="/assets/weapons/rifle.png" alt="Rifle" />
+          <span>Rifle</span>
+        </div>
+        <div class="touch-weapon-slot" data-weapon="shotgun">
+          <img src="/assets/weapons/shotgun.png" alt="Shotgun" />
+          <span>SG</span>
+        </div>
+        <div class="touch-weapon-slot" data-weapon="rocket">
+          <img src="/assets/weapons/rocketlauncher.png" alt="Rocket" />
+          <span>RL</span>
+        </div>
+        <div class="touch-weapon-slot" data-weapon="sniper">
+          <img src="/assets/weapons/sniper.png" alt="Sniper" />
+          <span>Snpr</span>
+        </div>
+        <div class="touch-weapon-slot" data-weapon="uzi">
+          <img src="/assets/weapons/uzi.png" alt="SMG" />
+          <span>SMG</span>
+        </div>
+        <div class="touch-weapon-slot" data-weapon="pistol">
+          <img src="/assets/weapons/pistol.png" alt="Pistol" />
+          <span>Pstl</span>
+        </div>
+      </div>
+
+      <!-- Reload button -->
       <div id="btn-touch-reload" class="touch-action-btn">RELOAD</div>
     </div>
   </div>

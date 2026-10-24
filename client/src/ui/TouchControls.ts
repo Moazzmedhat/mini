@@ -32,17 +32,17 @@ export class InputController {
   private touchJump = false;
   private touchBoost = false;
   private touchFire = false;
-  private touchAimAngle: number | null = null;
-  private isDedicatedBoostHeld = false;
+  private touchAimAngle = 0;
 
   // Active touch pointers by ID
   private joystickPointerId: number | null = null;
   private joystickStartX = 0;
   private joystickStartY = 0;
 
-  private aimPointerId: number | null = null;
-  private aimStartX = 0;
-  private aimStartY = 0;
+  // Aim joystick
+  private aimJoystickPointerId: number | null = null;
+  private aimJoystickCenterX = 0;
+  private aimJoystickCenterY = 0;
 
   private isTouchDevice = false;
 
@@ -50,10 +50,10 @@ export class InputController {
   private touchContainer!: HTMLElement;
   private joystickBase!: HTMLElement;
   private joystickThumb!: HTMLElement;
-  private boostBtn!: HTMLElement;
-  private fireBtn!: HTMLElement;
-  private jumpBtn!: HTMLElement;
   private reloadBtn!: HTMLElement;
+  private aimJoystickBase!: HTMLElement;
+  private aimJoystickThumb!: HTMLElement;
+  private aimDirectionLine!: HTMLElement;
 
   public onWeaponChange?: (weapon: WeaponType) => void;
 
@@ -171,66 +171,43 @@ export class InputController {
 
     this.joystickBase = document.getElementById('joystick-base')!;
     this.joystickThumb = document.getElementById('joystick-thumb')!;
-    this.boostBtn = document.getElementById('btn-touch-boost')!;
-    this.fireBtn = document.getElementById('btn-touch-fire')!;
-    this.jumpBtn = document.getElementById('btn-touch-jump')!;
     this.reloadBtn = document.getElementById('btn-touch-reload')!;
-
-    // Boost button touch handling
-    this.boostBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      this.isDedicatedBoostHeld = true;
-      this.touchBoost = true;
-      this.boostBtn.classList.add('active');
-    });
-    const releaseBoost = (e: PointerEvent) => {
-      e.preventDefault();
-      this.isDedicatedBoostHeld = false;
-      this.touchBoost = false;
-      this.boostBtn.classList.remove('active');
-    };
-    this.boostBtn.addEventListener('pointerup', releaseBoost);
-    this.boostBtn.addEventListener('pointercancel', releaseBoost);
-
-    // Fire button touch handling
-    this.fireBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      this.touchFire = true;
-      this.fireBtn.classList.add('active');
-    });
-    const releaseFire = (e: PointerEvent) => {
-      e.preventDefault();
-      this.touchFire = false;
-      this.fireBtn.classList.remove('active');
-    };
-    this.fireBtn.addEventListener('pointerup', releaseFire);
-    this.fireBtn.addEventListener('pointercancel', releaseFire);
-
-    // Jump button touch handling
-    this.jumpBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      this.touchJump = true;
-      this.touchBoost = true; // Jump button also provides lift
-      this.jumpBtn.classList.add('active');
-    });
-    const releaseJump = (e: PointerEvent) => {
-      e.preventDefault();
-      this.touchJump = false;
-      if (!this.isDedicatedBoostHeld) {
-        this.touchBoost = false;
-      }
-      this.jumpBtn.classList.remove('active');
-    };
-    this.jumpBtn.addEventListener('pointerup', releaseJump);
-    this.jumpBtn.addEventListener('pointercancel', releaseJump);
+    this.aimJoystickBase = document.getElementById('aim-joystick-base')!;
+    this.aimJoystickThumb = document.getElementById('aim-joystick-thumb')!;
+    this.aimDirectionLine = document.getElementById('aim-direction-line')!;
 
     // Reload button
-    this.reloadBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      this.keyReload = true;
-    });
+    if (this.reloadBtn) {
+      this.reloadBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        this.keyReload = true;
+        this.reloadBtn.classList.add('active');
+      });
+      const releaseReload = () => {
+        this.reloadBtn.classList.remove('active');
+      };
+      this.reloadBtn.addEventListener('pointerup', releaseReload);
+      this.reloadBtn.addEventListener('pointercancel', releaseReload);
+    }
 
-    // Joystick Touch Zone (left half of screen)
+    // ---- 360° AIM JOYSTICK ----
+    if (this.aimJoystickBase) {
+      this.aimJoystickBase.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (this.aimJoystickPointerId !== null) return;
+        this.aimJoystickPointerId = e.pointerId;
+
+        const rect = this.aimJoystickBase.getBoundingClientRect();
+        this.aimJoystickCenterX = rect.left + rect.width / 2;
+        this.aimJoystickCenterY = rect.top + rect.height / 2;
+
+        this.touchFire = true;
+        this.aimJoystickBase.classList.add('active');
+        if (this.aimDirectionLine) this.aimDirectionLine.style.display = 'block';
+      });
+    }
+
+    // ---- JOYSTICK ZONE (left half) ----
     const joystickZone = document.getElementById('joystick-touch-zone')!;
     joystickZone.addEventListener('pointerdown', (e) => {
       if (this.joystickPointerId !== null) return;
@@ -244,7 +221,9 @@ export class InputController {
       this.joystickThumb.style.transform = `translate(-50%, -50%)`;
     });
 
+    // ---- GLOBAL POINTER MOVE ----
     window.addEventListener('pointermove', (e) => {
+      // Left joystick move
       if (e.pointerId === this.joystickPointerId) {
         const dx = e.clientX - this.joystickStartX;
         const dy = e.clientY - this.joystickStartY;
@@ -264,48 +243,84 @@ export class InputController {
         if (dy < -20) {
           this.touchJump = true;
           this.touchBoost = true;
-        } else if (!this.isDedicatedBoostHeld) {
+        } else {
+          this.touchJump = false;
           this.touchBoost = false;
         }
       }
 
-      // Aim drag pad on right half
-      if (e.pointerId === this.aimPointerId) {
-        const dx = e.clientX - this.aimStartX;
-        const dy = e.clientY - this.aimStartY;
-        if (Math.hypot(dx, dy) > 10) {
+      // Right aim joystick move — 360° aiming
+      if (e.pointerId === this.aimJoystickPointerId) {
+        const dx = e.clientX - this.aimJoystickCenterX;
+        const dy = e.clientY - this.aimJoystickCenterY;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist > 5) {
           this.touchAimAngle = Math.atan2(dy, dx);
+
+          // Move aim thumb visually
+          const maxR = 30;
+          const clampDist = Math.min(maxR, dist);
+          const nx = Math.cos(this.touchAimAngle) * clampDist;
+          const ny = Math.sin(this.touchAimAngle) * clampDist;
+          this.aimJoystickThumb.style.transform = `translate(${nx}px, ${ny}px)`;
+
+          // Rotate direction indicator line
+          if (this.aimDirectionLine) {
+            const degrees = (this.touchAimAngle * 180 / Math.PI) - 90;
+            this.aimDirectionLine.style.transform = `rotate(${degrees}deg)`;
+          }
         }
       }
     });
 
-    const releaseJoystick = (e: PointerEvent) => {
+    // ---- GLOBAL POINTER UP ----
+    const releasePointers = (e: PointerEvent) => {
+      // Release left joystick
       if (e.pointerId === this.joystickPointerId) {
         this.joystickPointerId = null;
         this.touchMoveX = 0;
         this.touchJump = false;
-        if (!this.isDedicatedBoostHeld) {
-          this.touchBoost = false;
-        }
+        this.touchBoost = false;
         this.joystickBase.style.display = 'none';
         this.joystickThumb.style.transform = `translate(-50%, -50%)`;
       }
-      if (e.pointerId === this.aimPointerId) {
-        this.aimPointerId = null;
+
+      // Release aim joystick
+      if (e.pointerId === this.aimJoystickPointerId) {
+        this.aimJoystickPointerId = null;
+        this.touchFire = false;
+        this.aimJoystickBase.classList.remove('active');
+        this.aimJoystickThumb.style.transform = 'translate(0, 0)';
+        if (this.aimDirectionLine) this.aimDirectionLine.style.display = 'none';
       }
     };
 
-    window.addEventListener('pointerup', releaseJoystick);
-    window.addEventListener('pointercancel', releaseJoystick);
+    window.addEventListener('pointerup', releasePointers);
+    window.addEventListener('pointercancel', releasePointers);
 
-    // Aim drag area on right side
-    const aimZone = document.getElementById('aim-touch-zone')!;
-    aimZone.addEventListener('pointerdown', (e) => {
-      if ((e.target as HTMLElement).closest('.touch-action-btn')) return;
-      if (this.aimPointerId !== null) return;
-      this.aimPointerId = e.pointerId;
-      this.aimStartX = e.clientX;
-      this.aimStartY = e.clientY;
+    // ---- MOBILE WEAPON CART ----
+    this.setupTouchWeaponCart();
+  }
+
+  private setupTouchWeaponCart(): void {
+    const cart = document.getElementById('touch-weapon-cart');
+    if (!cart) return;
+
+    const slots = cart.querySelectorAll('.touch-weapon-slot');
+    slots.forEach((slot) => {
+      slot.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const weapon = (slot as HTMLElement).dataset.weapon as WeaponType;
+        if (!weapon) return;
+
+        this.setWeapon(weapon);
+
+        // Update active visual state
+        slots.forEach((s) => s.classList.remove('active'));
+        slot.classList.add('active');
+      });
     });
   }
 
@@ -335,8 +350,13 @@ export class InputController {
 
     // Combined aim angle
     let aimAngle = this.mouseAimAngle;
-    if (this.touchAimAngle !== null) {
+    if (this.isTouchDevice && this.aimJoystickPointerId !== null) {
       aimAngle = this.touchAimAngle;
+    } else if (!this.isTouchDevice) {
+      aimAngle = this.mouseAimAngle;
+    } else {
+      // When aim joystick is not actively touched, keep the last known touch aim
+      aimAngle = this.touchAimAngle || this.mouseAimAngle;
     }
 
     // Combined fire
@@ -359,7 +379,7 @@ export class InputController {
 
   public showTouchControls(show: boolean): void {
     if (this.touchContainer) {
-      const hasTouch = 'ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+      const hasTouch = Boolean('ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0));
       this.touchContainer.style.display = (show && hasTouch) ? 'block' : 'none';
     }
   }
