@@ -16,6 +16,8 @@ export class HUD {
   private scoreboardBody: HTMLElement;
   private timerDisplay: HTMLElement;
   private btnFullscreen: HTMLElement | null;
+  private grenadePipsContainer: HTMLElement | null;
+  private touchGrenadeCount: HTMLElement | null;
 
   public onSelectWeapon?: (weapon: WeaponType) => void;
 
@@ -35,6 +37,8 @@ export class HUD {
     this.scoreboardBody = document.getElementById('scoreboard-table-body')!;
     this.timerDisplay = document.getElementById('hud-timer-value')!;
     this.btnFullscreen = document.getElementById('btn-fullscreen-toggle');
+    this.grenadePipsContainer = document.getElementById('hud-grenade-pips');
+    this.touchGrenadeCount = document.getElementById('touch-grenade-count');
 
     this.setupWeaponCart();
     this.setupFullscreen();
@@ -220,6 +224,31 @@ export class HUD {
       } else {
         this.ammoValue.textContent = `${p.ammo} / ${cfg.magazineSize}`;
         this.reloadPrompt.style.display = p.ammo === 0 ? 'block' : 'none';
+      }
+    }
+
+    // Grenade count updates
+    const count = p.grenades !== undefined ? p.grenades : 0;
+    if (this.grenadePipsContainer) {
+      const pips = this.grenadePipsContainer.querySelectorAll('.grenade-pip');
+      pips.forEach((pip, idx) => {
+        if (idx < count) {
+          pip.classList.remove('empty');
+        } else {
+          pip.classList.add('empty');
+        }
+      });
+    }
+
+    if (this.touchGrenadeCount) {
+      this.touchGrenadeCount.textContent = `${count}`;
+      const touchBtn = document.getElementById('btn-touch-grenade');
+      if (touchBtn) {
+        if (count === 0 || (p.grenadeCooldownMs && p.grenadeCooldownMs > 0)) {
+          touchBtn.style.opacity = '0.45';
+        } else {
+          touchBtn.style.opacity = '1';
+        }
       }
     }
 

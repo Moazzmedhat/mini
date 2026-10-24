@@ -3,10 +3,12 @@ import {
   TICK_DELTA_SEC,
   COMBAT,
   WEAPONS,
+  GRENADE,
   WeaponType,
   PlayerState,
   PlayerInputFrame,
   ProjectileState,
+  GrenadeState,
   GameSnapshot,
   CombatEvent,
   MapData,
@@ -22,7 +24,9 @@ export class GameSimulation {
   public players = new Map<string, PlayerState>();
   public latestInputs = new Map<string, PlayerInputFrame>();
   public projectiles: ProjectileState[] = [];
+  public grenades: GrenadeState[] = [];
   public nextProjectileId = 1;
+  public nextGrenadeId = 1;
 
   public tickCount = 0;
   public roundDurationSec = COMBAT.DEFAULT_ROUND_TIME_SEC;
@@ -72,6 +76,8 @@ export class GameSimulation {
       ammo: WEAPONS.rifle.magazineSize,
       isReloading: false,
       reloadTimerMs: 0,
+      grenades: GRENADE.MAX_COUNT,
+      grenadeCooldownMs: 0,
       isDead: false,
       respawnTimerMs: 0,
       spawnProtected: true,
@@ -91,6 +97,7 @@ export class GameSimulation {
     this.lastFireTimes.delete(id);
     // Remove their active projectiles
     this.projectiles = this.projectiles.filter((p) => p.ownerId !== id);
+    this.grenades = this.grenades.filter((g) => g.ownerId !== id);
   }
 
   public receiveInput(id: string, input: PlayerInputFrame): void {
@@ -201,6 +208,11 @@ export class GameSimulation {
         }
       }
 
+      // Grenade cooldown timer
+      if (player.grenadeCooldownMs > 0) {
+        player.grenadeCooldownMs = Math.max(0, player.grenadeCooldownMs - dt * 1000);
+      }
+
       // Get input
       const input = this.latestInputs.get(id) || {
         seq: 0,
@@ -224,10 +236,156 @@ export class GameSimulation {
       if (input.fire && !player.isDead && !player.isReloading) {
         this.attemptFire(player, now);
       }
+
+      // Throw grenade
+      if (input.throwGrenade && !player.isDead) {
+        this.attemptThrowGrenade(player);
+        // Reset the input flag so one tap throws only one grenade
+        input.throwGrenade = false;
+      }
     }
 
-    // 2. Update projectiles
+    // 2. Update projectiles & grenades
     this.updateProjectiles(dt);
+    this.updateGrenades(dt);
+  }
+
+  private attemptThrowGrenade(player: PlayerState): void {
+    if (player.grenades <= 0 || player.grenadeCooldownMs > 0) return;
+
+    player.grenades--;
+    player.grenadeCooldownMs = GRENADE.COOLDOWN_MS;
+
+    const angle = player.aimAngle;
+    const spawnDist = 26;
+    const originX = player.x + Math.cos(angle) * spawnDist;
+    const originY = player.y - 8 + Math.sin(angle) * spawnDist;
+
+    // Add player velocity inheritance for realistic feel
+    const vx = Math.cos(angle) * GRENADE.THROW_SPEED + player.vx * 0.35;
+    const vy = Math.sin(angle) * GRENADE.THROW_SPEED + player.vy * 0.35;
+
+    const grenade: GrenadeState = {
+      id: `grenade_${this.nextGrenadeId++}`,
+      ownerId: player.id,
+      x: originX,
+      y: originY,
+      vx,
+      vy,
+      rotation: angle,
+      fuseRemainingMs: GRENADE.FUSE_MS,
+    };
+
+    this.grenades.push(grenade);
+
+    this.pendingEvents.push({
+      id: `ev_grenade_throw_${Date.now()}_${Math.random()}`,
+      type: 'grenade_throw',
+      attackerId: player.id,
+      attackerName: player.name,
+      victimId: '',
+      weaponType: 'grenade',
+      x: originX,
+      y: originY,
+    });
+  }
+
+  private updateGrenades(dt: number): void {
+    const remainingGrenades: GrenadeState[] = [];
+
+    for (const g of this.grenades) {
+      g.fuseRemainingMs -= dt * 1000;
+
+      // Apply gravity to vertical velocity
+      g.vy += GRENADE.GRAVITY * dt;
+
+      // Spin grenade based on horizontal velocity
+      g.rotation += (g.vx * 0.015) * dt * 60;
+
+      // Move grenade
+      const nextX = g.x + g.vx * dt;
+      const nextY = g.y + g.vy * dt;
+
+      // Platform bounce collisions
+      let bouncedX = false;
+      let bouncedY = false;
+      const rad = GRENADE.RADIUS;
+
+      for (const platform of this.map.platforms) {
+        // Horizontal check
+        const willOverlapX =
+          nextX + rad > platform.x &&
+          nextX - rad < platform.x + platform.w &&
+          g.y + rad > platform.y &&
+          g.y - rad < platform.y + platform.h;
+
+        if (willOverlapX) {
+          g.vx = -g.vx * GRENADE.BOUNCE_DAMPING;
+          bouncedX = true;
+        }
+
+        // Vertical check
+        const willOverlapY =
+          g.x + rad > platform.x &&
+          g.x - rad < platform.x + platform.w &&
+          nextY + rad > platform.y &&
+          nextY - rad < platform.y + platform.h;
+
+        if (willOverlapY) {
+          g.vy = -g.vy * GRENADE.BOUNCE_DAMPING;
+          // Apply friction when bouncing on horizontal surface
+          g.vx *= 0.85;
+          bouncedY = true;
+        }
+      }
+
+      if (!bouncedX) g.x = nextX;
+      if (!bouncedY) g.y = nextY;
+
+      // Void check
+      if (g.y >= this.map.deathY) {
+        continue; // fell into abyss
+      }
+
+      // Detonation check: fuse expired
+      if (g.fuseRemainingMs <= 0) {
+        this.detonateGrenade(g);
+        continue;
+      }
+
+      remainingGrenades.push(g);
+    }
+
+    this.grenades = remainingGrenades;
+  }
+
+  private detonateGrenade(g: GrenadeState): void {
+    const explosionEvent: CombatEvent = {
+      id: `ev_grenade_exp_${Date.now()}_${Math.random()}`,
+      type: 'explosion',
+      attackerId: g.ownerId,
+      victimId: '',
+      weaponType: 'grenade',
+      x: g.x,
+      y: g.y,
+    };
+    this.pendingEvents.push(explosionEvent);
+
+    // Apply splash damage with falloff
+    for (const player of this.players.values()) {
+      if (player.isDead || player.spawnProtected) continue;
+      const dx = player.x - g.x;
+      const dy = player.y - g.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist <= GRENADE.SPLASH_RADIUS) {
+        const falloff = 1 - dist / GRENADE.SPLASH_RADIUS;
+        const splashDmg = Math.round(GRENADE.DAMAGE * falloff);
+        if (splashDmg > 0) {
+          this.applyDamage(player, splashDmg, g.ownerId, 'grenade');
+        }
+      }
+    }
   }
 
   private attemptFire(player: PlayerState, now: number): void {
@@ -436,7 +594,7 @@ export class GameSimulation {
     victim: PlayerState,
     amount: number,
     attackerId: string,
-    weaponType: WeaponType
+    weaponType: WeaponType | 'grenade'
   ): void {
     if (victim.isDead || victim.spawnProtected) return;
 
@@ -463,7 +621,7 @@ export class GameSimulation {
   private killPlayer(
     victim: PlayerState,
     killer: PlayerState | null,
-    weaponType?: WeaponType,
+    weaponType?: WeaponType | 'grenade',
     reason?: string
   ): void {
     if (victim.isDead) return;
@@ -536,6 +694,8 @@ export class GameSimulation {
     player.spawnProtectTimerMs = COMBAT.SPAWN_PROTECTION_MS;
     player.ammo = WEAPONS[player.currentWeapon].magazineSize;
     player.isReloading = false;
+    player.grenades = GRENADE.MAX_COUNT;
+    player.grenadeCooldownMs = 0;
 
     this.pendingEvents.push({
       id: `ev_respawn_${Date.now()}_${Math.random()}`,
@@ -573,6 +733,7 @@ export class GameSimulation {
       matchTimeRemaining: Math.ceil(this.matchTimeRemaining),
       players: Array.from(this.players.values()).map((p) => ({ ...p })),
       projectiles: this.projectiles.map((pr) => ({ ...pr })),
+      grenades: this.grenades.map((g) => ({ ...g })),
     };
   }
 

@@ -11,6 +11,7 @@ import {
   WORLD_HEIGHT,
   PlayerState,
   ProjectileState,
+  GrenadeState,
   BoxCollider,
 } from '@jetpack-arena/shared';
 import { PlayerSprite } from '../entities/PlayerSprite.js';
@@ -27,6 +28,7 @@ export class ArenaScene extends Phaser.Scene {
   private particles!: ParticleManager;
   private projectileGfx!: Phaser.GameObjects.Graphics;
   private crosshairSprite!: Phaser.GameObjects.Image;
+  private grenadeSprites = new Map<string, Phaser.GameObjects.Image>();
 
   private latestSnapshot: GameSnapshot | null = null;
   private isSocketBound = false;
@@ -66,6 +68,7 @@ export class ArenaScene extends Phaser.Scene {
     this.load.image('weapon_uzi', '/assets/weapons/uzi.png');
     this.load.image('weapon_pistol', '/assets/weapons/pistol.png');
     this.load.image('weapon_knife', '/assets/weapons/knife.png');
+    this.load.image('weapon_grenade', '/assets/weapons/grenade.png');
 
     // Ammunition
     this.load.image('ammo_rifle', '/assets/weapons/ammo_rifle.png');
@@ -381,13 +384,20 @@ export class ArenaScene extends Phaser.Scene {
         }
 
         if (event.x !== undefined && event.y !== undefined) {
-          this.particles.emitExplosion(event.x, event.y, 90);
+          const blastRadius = event.weaponType === 'grenade' ? 120 : 90;
+          this.particles.emitExplosion(event.x, event.y, blastRadius);
           if (this.localPlayerSprite) {
             const dist = Math.hypot(this.localPlayerSprite.x - event.x, this.localPlayerSprite.y - event.y);
-            if (dist < 420) {
-              this.cameras.main.shake(200, 0.015 * (1 - dist / 420));
+            if (dist < 460) {
+              this.cameras.main.shake(220, 0.018 * (1 - dist / 460));
             }
           }
+        }
+        break;
+
+      case 'grenade_throw':
+        if (this.sound.get('sfx_jump')) {
+          this.sound.play('sfx_jump', { volume: 0.5, rate: 1.4 });
         }
         break;
 
@@ -474,8 +484,9 @@ export class ArenaScene extends Phaser.Scene {
         }
       }
 
-      // 2. Render Projectiles
+      // 2. Render Projectiles & Grenades
       this.renderProjectiles(this.latestSnapshot.projectiles);
+      this.renderGrenades(this.latestSnapshot.grenades || []);
     }
 
     // 3. Update particle system
@@ -531,6 +542,48 @@ export class ArenaScene extends Phaser.Scene {
         this.projectileGfx.lineBetween(tailX, tailY, proj.x, proj.y);
         this.projectileGfx.fillStyle(0xffffff, 1);
         this.projectileGfx.fillCircle(proj.x, proj.y, proj.radius);
+      }
+    }
+  }
+
+  private renderGrenades(grenades: GrenadeState[]): void {
+    const activeGrenadeIds = new Set<string>();
+
+    for (const g of grenades) {
+      activeGrenadeIds.add(g.id);
+      let spr = this.grenadeSprites.get(g.id);
+
+      if (!spr) {
+        spr = this.add.image(g.x, g.y, 'weapon_grenade');
+        spr.setDisplaySize(20, 20);
+        spr.setDepth(12);
+        this.grenadeSprites.set(g.id, spr);
+      }
+
+      spr.setPosition(g.x, g.y);
+      spr.setRotation(g.rotation);
+
+      // Flashing warning red tint as fuse runs down
+      if (g.fuseRemainingMs < 700) {
+        const flashRate = Math.sin(Date.now() * 0.02) > 0;
+        spr.setTint(flashRate ? 0xff0000 : 0xffffff);
+      } else {
+        spr.clearTint();
+      }
+
+      // Small smoke trail while airborne
+      if (Math.abs(g.vx) > 30 || Math.abs(g.vy) > 30) {
+        if (Math.random() < 0.3) {
+          this.particles.emitHitSparks(g.x, g.y, 0xcccccc, 2);
+        }
+      }
+    }
+
+    // Clean up expired or exploded grenades
+    for (const [id, spr] of this.grenadeSprites.entries()) {
+      if (!activeGrenadeIds.has(id)) {
+        spr.destroy();
+        this.grenadeSprites.delete(id);
       }
     }
   }

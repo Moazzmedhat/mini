@@ -9,6 +9,7 @@ export interface InputSnapshot {
   fire: boolean;
   weaponType?: WeaponType;
   reload?: boolean;
+  throwGrenade?: boolean;
 }
 
 export class InputController {
@@ -21,6 +22,7 @@ export class InputController {
   private keyBoost = false;
   private keyFire = false;
   private keyReload = false;
+  private keyGrenade = false;
   private selectedWeapon: WeaponType = 'rifle';
 
   // Mouse aim (desktop)
@@ -51,6 +53,7 @@ export class InputController {
   private joystickBase!: HTMLElement;
   private joystickThumb!: HTMLElement;
   private reloadBtn!: HTMLElement;
+  private grenadeBtn!: HTMLElement | null;
   private aimJoystickBase!: HTMLElement;
   private aimJoystickThumb!: HTMLElement;
   private aimDirectionLine!: HTMLElement;
@@ -92,6 +95,9 @@ export class InputController {
           break;
         case 'KeyR':
           this.keyReload = true;
+          break;
+        case 'KeyG':
+          this.keyGrenade = true;
           break;
         case 'Digit1':
           this.setWeapon('rifle');
@@ -142,6 +148,9 @@ export class InputController {
         case 'KeyR':
           this.keyReload = false;
           break;
+        case 'KeyG':
+          this.keyGrenade = false;
+          break;
       }
     });
 
@@ -177,6 +186,7 @@ export class InputController {
     this.joystickBase = document.getElementById('joystick-base')!;
     this.joystickThumb = document.getElementById('joystick-thumb')!;
     this.reloadBtn = document.getElementById('btn-touch-reload')!;
+    this.grenadeBtn = document.getElementById('btn-touch-grenade');
     this.aimJoystickBase = document.getElementById('aim-joystick-base')!;
     this.aimJoystickThumb = document.getElementById('aim-joystick-thumb')!;
     this.aimDirectionLine = document.getElementById('aim-direction-line')!;
@@ -193,6 +203,20 @@ export class InputController {
       };
       this.reloadBtn.addEventListener('pointerup', releaseReload);
       this.reloadBtn.addEventListener('pointercancel', releaseReload);
+    }
+
+    // Grenade button
+    if (this.grenadeBtn) {
+      this.grenadeBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        this.keyGrenade = true;
+        this.grenadeBtn?.classList.add('active');
+      });
+      const releaseGrenade = () => {
+        this.grenadeBtn?.classList.remove('active');
+      };
+      this.grenadeBtn.addEventListener('pointerup', releaseGrenade);
+      this.grenadeBtn.addEventListener('pointercancel', releaseGrenade);
     }
 
     // ---- 360° AIM JOYSTICK ----
@@ -370,6 +394,9 @@ export class InputController {
     const reload = this.keyReload;
     this.keyReload = false; // consume trigger
 
+    const throwGrenade = this.keyGrenade;
+    this.keyGrenade = false; // consume trigger
+
     return {
       seq: this.seq,
       moveX: Math.max(-1, Math.min(1, moveX)),
@@ -379,6 +406,7 @@ export class InputController {
       fire,
       weaponType: this.selectedWeapon,
       reload,
+      throwGrenade,
     };
   }
 

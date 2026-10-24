@@ -9,6 +9,7 @@ export interface PlayerInputFrame {
   fire: boolean;     // fire button held
   weaponType?: WeaponType;
   reload?: boolean;
+  throwGrenade?: boolean;
 }
 
 export interface PlayerState {
@@ -29,6 +30,8 @@ export interface PlayerState {
   ammo: number;
   isReloading: boolean;
   reloadTimerMs: number;
+  grenades: number;
+  grenadeCooldownMs: number;
   isDead: boolean;
   respawnTimerMs: number;
   spawnProtected: boolean;
@@ -37,6 +40,17 @@ export interface PlayerState {
   deaths: number;
   score: number;
   pingMs?: number;
+}
+
+export interface GrenadeState {
+  id: string;
+  ownerId: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  rotation: number;
+  fuseRemainingMs: number;
 }
 
 export interface ProjectileState {
@@ -83,7 +97,7 @@ export interface RoomDTO {
   winnerName?: string;
 }
 
-export type CombatEventType = 'hit' | 'kill' | 'respawn' | 'reload' | 'suicide' | 'explosion';
+export type CombatEventType = 'hit' | 'kill' | 'respawn' | 'reload' | 'suicide' | 'explosion' | 'grenade_throw';
 
 export interface CombatEvent {
   id: string;
@@ -92,7 +106,7 @@ export interface CombatEvent {
   attackerName?: string;
   victimId: string;
   victimName?: string;
-  weaponType?: WeaponType;
+  weaponType?: WeaponType | 'grenade';
   damage?: number;
   x?: number;
   y?: number;
@@ -104,6 +118,7 @@ export interface GameSnapshot {
   matchTimeRemaining: number;
   players: PlayerState[];
   projectiles: ProjectileState[];
+  grenades?: GrenadeState[];
 }
 
 export interface ScoreboardEntry {

@@ -907,6 +907,68 @@
       font-size: 11px;
     }
 
+    #btn-touch-grenade {
+      bottom: 24px;
+      right: 148px;
+      width: 50px;
+      height: 50px;
+      background: radial-gradient(circle, #334155, #1e293b);
+      border: 2px solid #ef4444;
+      color: #f87171;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    #btn-touch-grenade img {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    #btn-touch-grenade .grenade-badge {
+      font-size: 9px;
+      font-weight: 900;
+      color: #fca5a5;
+      line-height: 1;
+      margin-top: 1px;
+    }
+
+    .meter-grenade-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding-top: 2px;
+      border-top: 1px solid rgba(51, 65, 85, 0.4);
+    }
+
+    .grenade-icons-list {
+      display: flex;
+      gap: 3px;
+    }
+
+    .grenade-pip {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    .grenade-pip.empty {
+      background: #475569;
+      box-shadow: none;
+      opacity: 0.35;
+    }
+
     /* Mobile portrait rotation prompt */
     #orientation-prompt {
       display: none;
@@ -1155,6 +1217,16 @@
             <div id="hud-fuel-fill" class="meter-bar-fill"></div>
           </div>
         </div>
+
+        <!-- Grenade Pips (Utility Status) -->
+        <div class="meter-grenade-row">
+          <span style="color:#f87171;">GRENADE [G]</span>
+          <div id="hud-grenade-pips" class="grenade-icons-list">
+            <div class="grenade-pip"></div>
+            <div class="grenade-pip"></div>
+            <div class="grenade-pip"></div>
+          </div>
+        </div>
       </div>
 
       <!-- IN-GAME WEAPON CART / LOADOUT DOCK (Bottom Center) -->
@@ -1278,6 +1350,12 @@
 
       <!-- Reload button -->
       <div id="btn-touch-reload" class="touch-action-btn">RELOAD</div>
+
+      <!-- Dedicated Grenade Throw Button -->
+      <div id="btn-touch-grenade" class="touch-action-btn">
+        <img src="/assets/weapons/grenade.png" alt="Grenade" />
+        <span id="touch-grenade-count" class="grenade-badge">3</span>
+      </div>
     </div>
   </div>
 

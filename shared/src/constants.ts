@@ -155,3 +155,15 @@ export const WEAPONS: Record<WeaponType, WeaponConfig> = {
     splashRadius: 0,
   },
 };
+
+export const GRENADE = {
+  MAX_COUNT: 3,
+  COOLDOWN_MS: 1200,
+  FUSE_MS: 2000,          // 2 seconds fuse
+  THROW_SPEED: 700,       // initial impulse speed
+  GRAVITY: 850,           // arc gravity
+  BOUNCE_DAMPING: 0.55,   // velocity damping on platform bounce
+  RADIUS: 8,              // collision / rendering radius
+  DAMAGE: 80,             // maximum center damage
+  SPLASH_RADIUS: 130,     // blast area
+};

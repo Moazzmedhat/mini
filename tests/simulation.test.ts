@@ -15,6 +15,7 @@ describe('GameSimulation Physics & Combat', () => {
     expect(player.fuel).toBe(100);
     expect(player.currentWeapon).toBe('rifle');
     expect(player.ammo).toBe(WEAPONS.rifle.magazineSize);
+    expect(player.grenades).toBe(3);
     expect(player.isDead).toBe(false);
   });
 
@@ -115,5 +116,30 @@ describe('GameSimulation Physics & Combat', () => {
     expect(p1.kills).toBe(1);
     expect(p2.deaths).toBe(1);
     expect(p2.respawnTimerMs).toBeGreaterThan(0);
+  });
+
+  it('throws grenade with arc trajectory and consumes grenade ammo', () => {
+    const p1 = sim.addPlayer('p1', 'Thrower', '#ff0000');
+    sim.startMatch();
+
+    expect(p1.grenades).toBe(3);
+    expect(sim.grenades.length).toBe(0);
+
+    sim.receiveInput('p1', {
+      seq: 1,
+      moveX: 0,
+      jump: false,
+      boost: false,
+      aimAngle: -Math.PI / 4, // 45 degrees up-right
+      fire: false,
+      throwGrenade: true,
+    });
+    sim.update(1 / 30);
+
+    expect(p1.grenades).toBe(2);
+    expect(sim.grenades.length).toBe(1);
+    expect(sim.grenades[0].ownerId).toBe('p1');
+    expect(sim.grenades[0].vx).toBeGreaterThan(0);
+    expect(sim.grenades[0].vy).toBeLessThan(0); // upward velocity initially
   });
 });

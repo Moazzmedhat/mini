@@ -23,4 +23,5 @@ export const inputFrameSchema = z.object({
   fire: z.boolean(),
   weaponType: z.enum(['rifle', 'shotgun', 'rocket', 'sniper', 'uzi', 'pistol', 'knife']).optional(),
   reload: z.boolean().optional(),
+  throwGrenade: z.boolean().optional(),
 });

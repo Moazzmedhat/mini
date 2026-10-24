@@ -27,6 +27,7 @@ Complete catalog of local files downloaded into `client/public/assets/`:
 | `weapons` | `rocketlauncher.png` | PNG (Transparent) | Heavy Rocket Launcher sprite | Weapon Pack |
 | `weapons` | `pistol.png` | PNG (Transparent) | Tactical sidearm sprite | Weapon Pack |
 | `weapons` | `knife.png` | PNG (Transparent) | Combat Knife melee weapon sprite | Weapon Pack |
+| `weapons` | `grenade.png` | PNG (Transparent) | Fragmentation Grenade throwable sprite | Weapon Pack |
 | `weapons` | `ammo_rifle.png` | PNG (Transparent) | Rifle bullet projectile | Weapon Pack |
 | `weapons` | `ammo_shotgun.png` | PNG (Transparent) | Shotgun pellet projectile | Weapon Pack |
 | `weapons` | `ammo_rocket.png` | PNG (Transparent) | Plasma Rocket missile | Weapon Pack |
