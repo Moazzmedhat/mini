@@ -10,6 +10,10 @@ export const createGameConfig = (parent: string): Phaser.Types.Core.GameConfig =
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
+  fps: {
+    target: 60,
+    forceSetTimeOut: false,
+  },
   physics: {
     default: 'arcade',
     arcade: {
@@ -17,6 +21,6 @@ export const createGameConfig = (parent: string): Phaser.Types.Core.GameConfig =
       debug: false,
     },
   },
-  backgroundColor: '#090d16',
+  backgroundColor: '#070b14',
   scene: [ArenaScene],
 });

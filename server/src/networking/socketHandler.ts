@@ -40,8 +40,11 @@ export function setupSocketHandlers(io: Server, roomManager: RoomManager) {
 
         const callsign = callsignSchema.parse(payload?.callsign || 'Pilot');
         const color = payload?.color || '#22c55e';
+        const skin = payload?.skin || 'soldier';
+        const mapId = payload?.mapId || 'outpost_delta';
+        const roundTimeSec = payload?.roundTimeSec ?? 180;
 
-        const room = roomManager.createRoom(socket, callsign, color);
+        const room = roomManager.createRoom(socket, callsign, color, skin, mapId, roundTimeSec);
         socket.emit(EVENTS.ROOM_STATE, { room: room.toDTO() });
       } catch (err: any) {
         socket.emit(EVENTS.ROOM_ERROR, { message: err?.message || 'Failed to create room' });
@@ -59,12 +62,20 @@ export function setupSocketHandlers(io: Server, roomManager: RoomManager) {
         const code = roomCodeSchema.parse(payload?.code);
         const callsign = callsignSchema.parse(payload?.callsign || 'Cadet');
         const color = payload?.color || '#3b82f6';
+        const skin = payload?.skin || 'player';
 
-        const room = roomManager.joinRoom(socket, code, callsign, color);
+        const room = roomManager.joinRoom(socket, code, callsign, color, skin);
         socket.emit(EVENTS.ROOM_STATE, { room: room.toDTO() });
       } catch (err: any) {
         socket.emit(EVENTS.ROOM_ERROR, { message: err?.message || 'Failed to join room' });
       }
+    });
+
+    // Room Settings (Host only)
+    socket.on(EVENTS.ROOM_SETTINGS, (payload: any) => {
+      const room = roomManager.getRoomBySocket(socket.id);
+      if (!room || room.hostId !== socket.id) return;
+      room.setSettings(payload?.mapId, payload?.roundTimeSec);
     });
 
     // 3. Ready Toggle

@@ -33,6 +33,7 @@ export class InputController {
   private touchBoost = false;
   private touchFire = false;
   private touchAimAngle: number | null = null;
+  private isDedicatedBoostHeld = false;
 
   // Active touch pointers by ID
   private joystickPointerId: number | null = null;
@@ -54,15 +55,20 @@ export class InputController {
   private jumpBtn!: HTMLElement;
   private reloadBtn!: HTMLElement;
 
+  public onWeaponChange?: (weapon: WeaponType) => void;
+
   constructor() {
-    this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    this.isTouchDevice = Boolean('ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0));
     this.setupDesktopListeners();
     this.setupTouchUI();
   }
 
   private setupDesktopListeners(): void {
+    window.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+
     window.addEventListener('keydown', (e) => {
-      // Ignore typing in input fields
       if ((e.target as HTMLElement).tagName === 'INPUT') return;
 
       switch (e.code) {
@@ -78,6 +84,7 @@ export class InputController {
         case 'ArrowUp':
         case 'Space':
           this.keyJump = true;
+          this.keyBoost = true; // Space, W, Up Arrow activate jump AND jetpack boost!
           break;
         case 'ShiftLeft':
         case 'ShiftRight':
@@ -87,13 +94,22 @@ export class InputController {
           this.keyReload = true;
           break;
         case 'Digit1':
-          this.selectedWeapon = 'rifle';
+          this.setWeapon('rifle');
           break;
         case 'Digit2':
-          this.selectedWeapon = 'shotgun';
+          this.setWeapon('shotgun');
           break;
         case 'Digit3':
-          this.selectedWeapon = 'rocket';
+          this.setWeapon('rocket');
+          break;
+        case 'Digit4':
+          this.setWeapon('sniper');
+          break;
+        case 'Digit5':
+          this.setWeapon('uzi');
+          break;
+        case 'Digit6':
+          this.setWeapon('pistol');
           break;
       }
     });
@@ -112,6 +128,7 @@ export class InputController {
         case 'ArrowUp':
         case 'Space':
           this.keyJump = false;
+          this.keyBoost = false;
           break;
         case 'ShiftLeft':
         case 'ShiftRight':
@@ -133,12 +150,17 @@ export class InputController {
       if ((e.target as HTMLElement).closest('.interactive-ui')) return;
       if (e.button === 0) {
         this.isPointerDown = true;
+      } else if (e.button === 2) {
+        // Right click activates jetpack boost
+        this.keyBoost = true;
       }
     });
 
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) {
         this.isPointerDown = false;
+      } else if (e.button === 2) {
+        this.keyBoost = false;
       }
     });
   }
@@ -157,11 +179,13 @@ export class InputController {
     // Boost button touch handling
     this.boostBtn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
+      this.isDedicatedBoostHeld = true;
       this.touchBoost = true;
       this.boostBtn.classList.add('active');
     });
     const releaseBoost = (e: PointerEvent) => {
       e.preventDefault();
+      this.isDedicatedBoostHeld = false;
       this.touchBoost = false;
       this.boostBtn.classList.remove('active');
     };
@@ -186,11 +210,15 @@ export class InputController {
     this.jumpBtn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       this.touchJump = true;
+      this.touchBoost = true; // Jump button also provides lift
       this.jumpBtn.classList.add('active');
     });
     const releaseJump = (e: PointerEvent) => {
       e.preventDefault();
       this.touchJump = false;
+      if (!this.isDedicatedBoostHeld) {
+        this.touchBoost = false;
+      }
       this.jumpBtn.classList.remove('active');
     };
     this.jumpBtn.addEventListener('pointerup', releaseJump);
@@ -232,9 +260,12 @@ export class InputController {
         // Horizontal movement: normalized -1 to 1
         this.touchMoveX = Math.max(-1, Math.min(1, clampedX / 40));
 
-        // Swipe up on joystick can also trigger jump
-        if (dy < -35) {
+        // Pulling joystick UP activates jetpack flight!
+        if (dy < -20) {
           this.touchJump = true;
+          this.touchBoost = true;
+        } else if (!this.isDedicatedBoostHeld) {
+          this.touchBoost = false;
         }
       }
 
@@ -252,6 +283,10 @@ export class InputController {
       if (e.pointerId === this.joystickPointerId) {
         this.joystickPointerId = null;
         this.touchMoveX = 0;
+        this.touchJump = false;
+        if (!this.isDedicatedBoostHeld) {
+          this.touchBoost = false;
+        }
         this.joystickBase.style.display = 'none';
         this.joystickThumb.style.transform = `translate(-50%, -50%)`;
       }
@@ -276,6 +311,9 @@ export class InputController {
 
   public setWeapon(weapon: WeaponType): void {
     this.selectedWeapon = weapon;
+    if (this.onWeaponChange) {
+      this.onWeaponChange(weapon);
+    }
   }
 
   public getSelectedWeapon(): WeaponType {

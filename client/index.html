@@ -9,7 +9,7 @@
   <title>Jetpack Arena — 2D Multiplayer Shooter</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
@@ -24,7 +24,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background-color: #090d16;
+      background-color: #070b14;
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       color: #f8fafc;
       touch-action: none;
@@ -55,21 +55,35 @@
       pointer-events: auto;
     }
 
-    /* Connection status badge */
-    #connection-badge {
+    /* Top Action Bar (Connection, Fullscreen, Mute) */
+    .top-action-bar {
       position: absolute;
       top: 10px;
       right: 14px;
+      display: flex;
+      gap: 8px;
+      z-index: 50;
+      align-items: center;
+    }
+
+    .icon-btn {
       background: rgba(15, 23, 42, 0.85);
       border: 1px solid #334155;
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 999px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
+      color: #cbd5e1;
+      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 6px;
-      z-index: 50;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .icon-btn:hover {
+      background: #1e293b;
+      border-color: #38bdf8;
     }
 
     .status-dot {
@@ -87,7 +101,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.94), rgba(9, 13, 22, 0.98));
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.94), rgba(7, 11, 20, 0.98));
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -101,76 +115,129 @@
       background: #111827;
       border: 1px solid #1f2937;
       border-radius: 16px;
-      padding: 24px 28px;
+      padding: 22px 26px;
       width: 100%;
-      max-width: 440px;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
       text-align: center;
     }
 
     .game-logo {
       font-family: 'Orbitron', sans-serif;
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 900;
       letter-spacing: 2px;
       text-transform: uppercase;
       background: linear-gradient(135deg, #4ade80 0%, #38bdf8 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
 
     .game-subtitle {
-      font-size: 12px;
+      font-size: 11px;
       color: #94a3b8;
-      margin-bottom: 20px;
+      margin-bottom: 14px;
       text-transform: uppercase;
       letter-spacing: 1.5px;
     }
 
     /* Form inputs */
     .form-group {
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       text-align: left;
     }
 
     .form-label {
       display: block;
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 800;
       color: #94a3b8;
       text-transform: uppercase;
       margin-bottom: 6px;
       letter-spacing: 0.5px;
     }
 
-    .form-input {
+    .form-input, .form-select {
       width: 100%;
       background: #1e293b;
       border: 1.5px solid #334155;
       border-radius: 8px;
-      padding: 11px 14px;
+      padding: 10px 14px;
       color: #f8fafc;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
       outline: none;
       transition: border-color 0.15s ease;
     }
 
-    .form-input:focus {
+    .form-input:focus, .form-select:focus {
       border-color: #38bdf8;
     }
 
+    /* Skin Selector Cards */
+    .skin-selector-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .skin-choice {
+      background: #1e293b;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      padding: 6px 4px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.15s ease;
+    }
+
+    .skin-choice:hover {
+      background: #334155;
+      border-color: #38bdf8;
+    }
+
+    .skin-choice.selected {
+      border-color: #4ade80;
+      background: rgba(74, 222, 128, 0.12);
+      box-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .skin-avatar-img {
+      width: 32px;
+      height: 44px;
+      object-fit: contain;
+      margin-bottom: 4px;
+    }
+
+    .skin-name-tag {
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+
+    .skin-choice.selected .skin-name-tag {
+      color: #4ade80;
+    }
+
+    /* Color picker */
     .color-picker-row {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       justify-content: center;
-      margin: 10px 0 16px;
+      margin: 8px 0 14px;
     }
 
     .color-choice {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       cursor: pointer;
       border: 2px solid transparent;
@@ -180,15 +247,15 @@
     .color-choice.selected {
       transform: scale(1.15);
       border-color: #ffffff;
-      box-shadow: 0 0 12px currentColor;
+      box-shadow: 0 0 10px currentColor;
     }
 
     /* Action Buttons */
     .btn {
       width: 100%;
-      padding: 12px 18px;
+      padding: 11px 16px;
       border-radius: 10px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -232,14 +299,9 @@
       color: #ffffff !important;
     }
 
-    .btn-danger {
-      background: #ef4444;
-      color: #ffffff;
-    }
-
     .button-row {
       display: flex;
-      gap: 10px;
+      gap: 8px;
     }
 
     /* Room Screen */
@@ -247,8 +309,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
       border-bottom: 1px solid #1f2937;
     }
 
@@ -261,12 +323,12 @@
     }
 
     .player-list {
-      max-height: 200px;
+      max-height: 160px;
       overflow-y: auto;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
 
     .player-list-item {
@@ -274,7 +336,7 @@
       justify-content: space-between;
       align-items: center;
       background: #1e293b;
-      padding: 10px 14px;
+      padding: 8px 12px;
       border-radius: 8px;
       font-size: 13px;
     }
@@ -289,6 +351,15 @@
       width: 10px;
       height: 10px;
       border-radius: 50%;
+    }
+
+    .player-skin-badge {
+      font-size: 9px;
+      font-weight: 800;
+      background: #334155;
+      color: #94a3b8;
+      padding: 2px 6px;
+      border-radius: 4px;
     }
 
     .host-badge {
@@ -397,6 +468,73 @@
       background-color: #06b6d4;
     }
 
+    /* IN-GAME WEAPON CART DOCK (Bottom Center) */
+    #hud-weapon-cart {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1.5px solid #334155;
+      padding: 6px 10px;
+      border-radius: 12px;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+    }
+
+    .weapon-cart-slot {
+      position: relative;
+      background: #1e293b;
+      border: 1.5px solid #334155;
+      border-radius: 8px;
+      width: 56px;
+      height: 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .weapon-cart-slot:hover {
+      background: #334155;
+      border-color: #38bdf8;
+    }
+
+    .weapon-cart-slot.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+      transform: translateY(-3px);
+    }
+
+    .cart-slot-hotkey {
+      position: absolute;
+      top: 2px;
+      left: 4px;
+      font-size: 9px;
+      font-weight: 900;
+      color: #94a3b8;
+    }
+
+    .cart-slot-img {
+      width: 36px;
+      height: 20px;
+      object-fit: contain;
+      margin-top: 4px;
+    }
+
+    .cart-slot-name {
+      font-size: 8px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #cbd5e1;
+      margin-top: 2px;
+    }
+
     /* Weapon status bottom right */
     .hud-weapon-card {
       position: absolute;
@@ -433,7 +571,7 @@
     /* Kill Feed */
     #kill-feed-container {
       position: absolute;
-      top: 10px;
+      top: 50px;
       right: 14px;
       display: flex;
       flex-direction: column;
@@ -686,7 +824,7 @@
   </style>
 </head>
 <body>
-  <!-- Orientation rotate warning for portrait phones -->
+  <!-- Orientation warning for portrait phones -->
   <div id="orientation-prompt">
     <div style="font-size: 48px; margin-bottom: 16px;">🔄</div>
     <h2 style="font-family:'Orbitron', sans-serif; margin-bottom: 10px;">ROTATE DEVICE</h2>
@@ -700,10 +838,13 @@
 
   <!-- UI & Controls Overlay Layer -->
   <div class="ui-layer">
-    <!-- Connection Status -->
-    <div id="connection-badge">
-      <div class="status-dot"></div>
-      <span id="connection-text">ONLINE</span>
+    <!-- Top Action Bar -->
+    <div class="top-action-bar interactive-ui">
+      <button id="btn-fullscreen-toggle" class="icon-btn" title="Toggle Fullscreen">⛶ FULLSCREEN</button>
+      <div class="icon-btn">
+        <div class="status-dot"></div>
+        <span id="connection-text">ONLINE</span>
+      </div>
     </div>
 
     <!-- Error Toast -->
@@ -713,15 +854,44 @@
     <div id="home-screen" class="screen-overlay interactive-ui">
       <div class="modal-card">
         <h1 class="game-logo">JETPACK ARENA</h1>
-        <p class="game-subtitle">2D Mobile Jetpack Shooter</p>
+        <p class="game-subtitle">2D Online Jetpack Shooter</p>
 
+        <!-- Callsign input -->
         <div class="form-group">
           <label class="form-label" for="input-callsign">PILOT CALLSIGN</label>
           <input id="input-callsign" class="form-input" maxlength="16" placeholder="Enter Callsign..." />
         </div>
 
+        <!-- Skin Selector -->
         <div class="form-group">
-          <label class="form-label">ARMOR COLOR</label>
+          <label class="form-label">SELECT CHARACTER SKIN</label>
+          <div class="skin-selector-grid">
+            <div class="skin-choice selected" data-skin="soldier">
+              <img class="skin-avatar-img" src="/assets/characters/soldier/idle.png" alt="Soldier" />
+              <span class="skin-name-tag">Soldier</span>
+            </div>
+            <div class="skin-choice" data-skin="player">
+              <img class="skin-avatar-img" src="/assets/characters/player/idle.png" alt="Hero" />
+              <span class="skin-name-tag">Hero</span>
+            </div>
+            <div class="skin-choice" data-skin="adventurer">
+              <img class="skin-avatar-img" src="/assets/characters/adventurer/idle.png" alt="Tactical" />
+              <span class="skin-name-tag">Tactical</span>
+            </div>
+            <div class="skin-choice" data-skin="female">
+              <img class="skin-avatar-img" src="/assets/characters/female/idle.png" alt="Valkyrie" />
+              <span class="skin-name-tag">Valkyrie</span>
+            </div>
+            <div class="skin-choice" data-skin="zombie">
+              <img class="skin-avatar-img" src="/assets/characters/zombie/idle.png" alt="Mutant" />
+              <span class="skin-name-tag">Mutant</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Color selector -->
+        <div class="form-group">
+          <label class="form-label">ARMOR TRIM COLOR</label>
           <div class="color-picker-row">
             <div class="color-choice selected" style="background: #22c55e;" data-color="#22c55e"></div>
             <div class="color-choice" style="background: #3b82f6;" data-color="#3b82f6"></div>
@@ -733,7 +903,7 @@
 
         <button id="btn-create-room" class="btn btn-primary">⚡ CREATE ROOM</button>
 
-        <div class="form-group" style="margin-top: 14px;">
+        <div class="form-group" style="margin-top: 10px;">
           <label class="form-label" for="input-room-code">JOIN WITH ROOM CODE</label>
           <div style="display:flex; gap:8px;">
             <input id="input-room-code" class="form-input" maxlength="5" placeholder="CODE (e.g. ABCDE)" style="text-transform:uppercase; font-family:'Orbitron', monospace; font-size:16px; letter-spacing:2px;" />
@@ -741,9 +911,10 @@
           </div>
         </div>
 
-        <div class="button-row" style="margin-top: 14px;">
+        <div class="button-row" style="margin-top: 10px;">
           <button id="btn-help-open" class="btn btn-secondary">❓ CONTROLS</button>
           <button id="btn-mute-toggle" class="btn btn-secondary">🔊 SOUND ON</button>
+          <button id="btn-lobby-fullscreen" class="btn btn-secondary">⛶ FULLSCREEN</button>
         </div>
       </div>
     </div>
@@ -759,7 +930,34 @@
           <button id="btn-copy-code" class="btn btn-secondary" style="width:auto; padding:6px 14px; font-size:12px;">SHARE LINK</button>
         </div>
 
-        <div id="room-status-text" style="font-size:12px; color:#38bdf8; font-weight:700; margin-bottom:12px; text-transform:uppercase;">
+        <!-- Host Settings: Map & Round Time -->
+        <div id="room-host-settings" style="display:none; margin-bottom:12px; background:#1e293b; padding:10px 12px; border-radius:8px;">
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1; text-align:left;">
+              <label class="form-label">ARENA MAP</label>
+              <select id="select-map" class="form-select">
+                <option value="outpost_delta">Outpost Delta (Catwalks)</option>
+                <option value="cyber_bunker">Cyber Bunker (Underground)</option>
+                <option value="sky_citadel">Sky Citadel (Floating Islands)</option>
+              </select>
+            </div>
+            <div style="flex:1; text-align:left;">
+              <label class="form-label">MATCH DURATION</label>
+              <select id="select-round-time" class="form-select">
+                <option value="120">2 Minutes</option>
+                <option value="180" selected>3 Minutes</option>
+                <option value="300">5 Minutes</option>
+                <option value="600">10 Minutes</option>
+                <option value="0">Unlimited (Score Target)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Non-host view of map & time -->
+        <div id="room-settings-display" style="display:none; font-size:12px; color:#cbd5e1; margin-bottom:12px; background:#1e293b; padding:6px 12px; border-radius:6px;"></div>
+
+        <div id="room-status-text" style="font-size:12px; color:#38bdf8; font-weight:700; margin-bottom:10px; text-transform:uppercase;">
           LOBBY WAITING
         </div>
 
@@ -767,27 +965,26 @@
 
         <button id="btn-start-match" class="btn btn-primary" style="display:none;">🚀 START MATCH</button>
         <button id="btn-ready-toggle" class="btn btn-secondary">READY UP</button>
-        <button id="btn-leave-room" class="btn btn-secondary" style="margin-top:8px;">LEAVE ROOM</button>
+        <button id="btn-leave-room" class="btn btn-secondary" style="margin-top:6px;">LEAVE ROOM</button>
       </div>
     </div>
 
     <!-- CONTROLS & HOW TO PLAY MODAL -->
     <div id="help-modal" class="screen-overlay interactive-ui" style="display:none; z-index:50;">
       <div class="modal-card" style="text-align: left;">
-        <h2 style="font-family:'Orbitron', sans-serif; font-size:18px; margin-bottom:14px; color:#38bdf8;">HOW TO PLAY</h2>
-        <div style="font-size:13px; line-height:1.6; color:#cbd5e1; margin-bottom:16px;">
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:18px; margin-bottom:12px; color:#38bdf8;">HOW TO PLAY</h2>
+        <div style="font-size:13px; line-height:1.6; color:#cbd5e1; margin-bottom:14px;">
           <p><strong>💻 DESKTOP:</strong></p>
           <p>• <strong>A / D</strong> or Arrow Keys: Run left/right</p>
-          <p>• <strong>W / Space</strong>: Jump (when on ground)</p>
-          <p>• <strong>Shift</strong>: Jetpack Boost (hold to fly)</p>
+          <p>• <strong>W / Space / Right-Click / Shift</strong>: Jetpack Boost & Jump</p>
           <p>• <strong>Mouse</strong>: Aim & Left Click to shoot</p>
-          <p>• <strong>R</strong>: Reload magazine | <strong>1/2/3</strong>: Switch weapons</p>
+          <p>• <strong>R</strong>: Reload | <strong>1 to 6</strong>: Quick Weapon Switch</p>
           <br>
           <p><strong>📱 MOBILE:</strong></p>
-          <p>• Left thumb joystick: Move & jump</p>
-          <p>• Right thumb: Aim pad & tap FIRE</p>
+          <p>• Left joystick: Move & push UP to fly with jetpack</p>
+          <p>• Right thumb: Drag aim zone & tap FIRE</p>
           <p>• <strong>BOOST</strong> button: Hold to engage jetpack</p>
-          <p>• Keep an eye on your jetpack fuel meter!</p>
+          <p>• Tap weapon cart icons below to switch arsenal on the fly</p>
         </div>
         <button id="btn-help-close" class="btn btn-primary">GOT IT</button>
       </div>
@@ -826,7 +1023,41 @@
         </div>
       </div>
 
-      <!-- Weapon & Ammo Display -->
+      <!-- IN-GAME WEAPON CART / LOADOUT DOCK (Bottom Center) -->
+      <div id="hud-weapon-cart" class="interactive-ui">
+        <div class="weapon-cart-slot active" data-weapon="rifle" title="Pulse Rifle [1]">
+          <span class="cart-slot-hotkey">1</span>
+          <img class="cart-slot-img" src="/assets/weapons/rifle.png" alt="Rifle" />
+          <span class="cart-slot-name">Rifle</span>
+        </div>
+        <div class="weapon-cart-slot" data-weapon="shotgun" title="Spread Cannon [2]">
+          <span class="cart-slot-hotkey">2</span>
+          <img class="cart-slot-img" src="/assets/weapons/shotgun.png" alt="Shotgun" />
+          <span class="cart-slot-name">Shotgun</span>
+        </div>
+        <div class="weapon-cart-slot" data-weapon="rocket" title="Plasma Rocket [3]">
+          <span class="cart-slot-hotkey">3</span>
+          <img class="cart-slot-img" src="/assets/weapons/rocketlauncher.png" alt="Rocket" />
+          <span class="cart-slot-name">Rocket</span>
+        </div>
+        <div class="weapon-cart-slot" data-weapon="sniper" title="Beam Sniper [4]">
+          <span class="cart-slot-hotkey">4</span>
+          <img class="cart-slot-img" src="/assets/weapons/sniper.png" alt="Sniper" />
+          <span class="cart-slot-name">Sniper</span>
+        </div>
+        <div class="weapon-cart-slot" data-weapon="uzi" title="Dual SMG [5]">
+          <span class="cart-slot-hotkey">5</span>
+          <img class="cart-slot-img" src="/assets/weapons/uzi.png" alt="SMG" />
+          <span class="cart-slot-name">SMG</span>
+        </div>
+        <div class="weapon-cart-slot" data-weapon="pistol" title="Magnum Pistol [6]">
+          <span class="cart-slot-hotkey">6</span>
+          <img class="cart-slot-img" src="/assets/weapons/pistol.png" alt="Pistol" />
+          <span class="cart-slot-name">Pistol</span>
+        </div>
+      </div>
+
+      <!-- Current Ammo / Weapon Card -->
       <div class="hud-weapon-card">
         <div id="hud-weapon-name" class="hud-weapon-name">Pulse Rifle</div>
         <div id="hud-ammo-value" class="hud-ammo-value">30 / 30</div>

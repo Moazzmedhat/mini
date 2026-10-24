@@ -15,6 +15,7 @@ export interface PlayerState {
   id: string;
   name: string;
   color: string;
+  skin: string;
   x: number;
   y: number;
   vx: number;
@@ -59,6 +60,7 @@ export interface PlayerSummary {
   id: string;
   name: string;
   color: string;
+  skin: string;
   isHost: boolean;
   isReady: boolean;
   kills: number;
@@ -73,6 +75,7 @@ export interface RoomDTO {
   status: RoomStatus;
   maxPlayers: number;
   mapId: string;
+  roundTimeSec: number;
   players: PlayerSummary[];
   countdownRemaining?: number;
   matchTimeRemaining?: number;
@@ -107,6 +110,7 @@ export interface ScoreboardEntry {
   id: string;
   name: string;
   color: string;
+  skin: string;
   kills: number;
   deaths: number;
   score: number;

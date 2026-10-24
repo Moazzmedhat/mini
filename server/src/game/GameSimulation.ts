@@ -11,6 +11,7 @@ import {
   CombatEvent,
   MapData,
   MAP_OUTPOST_DELTA,
+  ALL_MAPS,
   PLAYER_WIDTH,
   PLAYER_HEIGHT,
 } from '@jetpack-arena/shared';
@@ -24,7 +25,8 @@ export class GameSimulation {
   public nextProjectileId = 1;
 
   public tickCount = 0;
-  public matchTimeRemaining = COMBAT.ROUND_TIME_SEC;
+  public roundDurationSec = COMBAT.DEFAULT_ROUND_TIME_SEC;
+  public matchTimeRemaining = COMBAT.DEFAULT_ROUND_TIME_SEC;
   public isMatchActive = false;
   public isMatchOver = false;
   public winnerId: string | null = null;
@@ -36,9 +38,19 @@ export class GameSimulation {
   // Combat event buffer emitted to players
   public pendingEvents: CombatEvent[] = [];
 
-  constructor() {}
+  constructor(mapId = 'outpost_delta', roundTimeSec = COMBAT.DEFAULT_ROUND_TIME_SEC) {
+    this.setSettings(mapId, roundTimeSec);
+  }
 
-  public addPlayer(id: string, name: string, color: string): PlayerState {
+  public setSettings(mapId: string, roundTimeSec: number): void {
+    if (ALL_MAPS[mapId]) {
+      this.map = ALL_MAPS[mapId];
+    }
+    this.roundDurationSec = roundTimeSec;
+    this.matchTimeRemaining = roundTimeSec;
+  }
+
+  public addPlayer(id: string, name: string, color: string, skin = 'soldier'): PlayerState {
     const spawnIndex = this.players.size % this.map.spawnPoints.length;
     const spawn = this.map.spawnPoints[spawnIndex];
 
@@ -46,6 +58,7 @@ export class GameSimulation {
       id,
       name,
       color,
+      skin: skin || 'soldier',
       x: spawn.x,
       y: spawn.y,
       vx: 0,
@@ -119,7 +132,7 @@ export class GameSimulation {
   public startMatch(): void {
     this.isMatchActive = true;
     this.isMatchOver = false;
-    this.matchTimeRemaining = COMBAT.ROUND_TIME_SEC;
+    this.matchTimeRemaining = this.roundDurationSec;
     this.tickCount = 0;
     this.projectiles = [];
     this.pendingEvents = [];

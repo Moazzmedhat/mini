@@ -6,6 +6,7 @@ export const EVENTS = {
   ROOM_JOIN: 'room:join',
   ROOM_LEAVE: 'room:leave',
   ROOM_READY: 'room:ready',
+  ROOM_SETTINGS: 'room:settings',
   ROOM_STATE: 'room:state',
   ROOM_ERROR: 'room:error',
 
@@ -29,16 +30,25 @@ export const EVENTS = {
 export interface RoomCreatePayload {
   callsign: string;
   color?: string;
+  skin?: string;
+  mapId?: string;
+  roundTimeSec?: number;
 }
 
 export interface RoomJoinPayload {
   code: string;
   callsign: string;
   color?: string;
+  skin?: string;
 }
 
 export interface RoomReadyPayload {
   ready: boolean;
+}
+
+export interface RoomSettingsPayload {
+  mapId?: string;
+  roundTimeSec?: number;
 }
 
 export interface MatchCountdownPayload {
@@ -49,8 +59,4 @@ export interface MatchEndPayload {
   winnerId: string;
   winnerName: string;
   scoreboard: ScoreboardEntry[];
-}
-
-export interface WeaponSwitchPayload {
-  weaponType: 'rifle' | 'shotgun' | 'rocket';
 }

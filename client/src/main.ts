@@ -9,7 +9,6 @@ import { HUD } from './ui/HUD.js';
 import { soundManager } from './audio/SoundSynth.js';
 
 function getSocketUrl(): string {
-  // If Vite dev server (port 5173), point to backend server at port 3000
   if (window.location.port === '5173') {
     return `http://${window.location.hostname}:3000`;
   }
@@ -34,6 +33,10 @@ window.addEventListener('DOMContentLoaded', () => {
   const hud = new HUD();
   const lobbyUI = new LobbyUI(socket);
 
+  // Sync weapon cart with input controller
+  hud.onSelectWeapon = (w) => inputCtrl.setWeapon(w);
+  inputCtrl.onWeaponChange = (w) => hud.highlightWeaponSlot(w);
+
   // 2. Initialize Phaser Game
   const config = createGameConfig('game-container');
   const game = new Phaser.Game(config);
@@ -47,6 +50,13 @@ window.addEventListener('DOMContentLoaded', () => {
       arenaScene.onCombatEvent = (e) => hud.addKillFeedItem(e);
     }
   }
+
+  lobbyUI.onMapChange = (mapId) => {
+    const arenaScene = game.scene.getScene('ArenaScene') as ArenaScene;
+    if (arenaScene) {
+      arenaScene.setMap(mapId);
+    }
+  };
 
   game.events.once('ready', () => {
     wireArenaScene();
@@ -70,7 +80,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (statusText) statusText.textContent = 'RECONNECTING...';
   });
 
-  // 3. When match starts (or joined active match)
+  // 3. When match starts
   lobbyUI.onMatchStart = () => {
     soundManager.unlock();
     inputCtrl.showTouchControls(true);

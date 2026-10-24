@@ -30,7 +30,14 @@ export class RoomManager {
     throw new Error('Failed to generate unique room code. System busy.');
   }
 
-  public createRoom(socket: Socket, hostName: string, hostColor = '#22c55e'): Room {
+  public createRoom(
+    socket: Socket,
+    hostName: string,
+    hostColor = '#22c55e',
+    hostSkin = 'soldier',
+    mapId = 'outpost_delta',
+    roundTimeSec = 180
+  ): Room {
     // If socket is already in a room, leave first
     this.leaveRoom(socket);
 
@@ -39,7 +46,7 @@ export class RoomManager {
     }
 
     const code = this.generateRoomCode();
-    const room = new Room(code, socket, hostName, hostColor, this.io);
+    const room = new Room(code, socket, hostName, hostColor, hostSkin, this.io, 8, mapId, roundTimeSec);
     room.onDestroy = (c) => this.rooms.delete(c);
 
     this.rooms.set(code, room);
@@ -48,7 +55,7 @@ export class RoomManager {
     return room;
   }
 
-  public joinRoom(socket: Socket, code: string, callsign: string, color = '#3b82f6'): Room {
+  public joinRoom(socket: Socket, code: string, callsign: string, color = '#3b82f6', skin = 'soldier'): Room {
     this.leaveRoom(socket);
 
     const upperCode = code.toUpperCase().trim();
@@ -62,7 +69,7 @@ export class RoomManager {
       throw new Error(`Room "${upperCode}" is already full.`);
     }
 
-    const added = room.addMember(socket, callsign, color);
+    const added = room.addMember(socket, callsign, color, skin);
     if (!added) {
       throw new Error(`Could not join room "${upperCode}".`);
     }

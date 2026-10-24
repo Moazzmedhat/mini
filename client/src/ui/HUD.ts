@@ -15,6 +15,9 @@ export class HUD {
   private winnerText: HTMLElement;
   private scoreboardBody: HTMLElement;
   private timerDisplay: HTMLElement;
+  private btnFullscreen: HTMLElement | null;
+
+  public onSelectWeapon?: (weapon: WeaponType) => void;
 
   constructor() {
     this.healthFill = document.getElementById('hud-health-fill')!;
@@ -31,6 +34,60 @@ export class HUD {
     this.winnerText = document.getElementById('match-winner-text')!;
     this.scoreboardBody = document.getElementById('scoreboard-table-body')!;
     this.timerDisplay = document.getElementById('hud-timer-value')!;
+    this.btnFullscreen = document.getElementById('btn-fullscreen-toggle');
+
+    this.setupWeaponCart();
+    this.setupFullscreen();
+  }
+
+  private setupFullscreen(): void {
+    if (this.btnFullscreen) {
+      this.btnFullscreen.addEventListener('click', () => {
+        this.toggleFullscreen();
+      });
+    }
+
+    const lobbyFs = document.getElementById('btn-lobby-fullscreen');
+    if (lobbyFs) {
+      lobbyFs.addEventListener('click', () => {
+        this.toggleFullscreen();
+      });
+    }
+  }
+
+  public toggleFullscreen(): void {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.warn('Fullscreen request failed:', err);
+      });
+    } else {
+      document.exitFullscreen().catch((err) => {
+        console.warn('Exit fullscreen failed:', err);
+      });
+    }
+  }
+
+  private setupWeaponCart(): void {
+    const cartSlots = document.querySelectorAll('.weapon-cart-slot');
+    cartSlots.forEach((slot) => {
+      slot.addEventListener('click', () => {
+        const weapon = (slot as HTMLElement).dataset.weapon as WeaponType;
+        if (weapon && this.onSelectWeapon) {
+          this.onSelectWeapon(weapon);
+          this.highlightWeaponSlot(weapon);
+        }
+      });
+    });
+  }
+
+  public highlightWeaponSlot(weapon: WeaponType): void {
+    document.querySelectorAll('.weapon-cart-slot').forEach((slot) => {
+      if ((slot as HTMLElement).dataset.weapon === weapon) {
+        slot.classList.add('active');
+      } else {
+        slot.classList.remove('active');
+      }
+    });
   }
 
   public updateLocalPlayer(p: PlayerState): void {
@@ -54,18 +111,26 @@ export class HUD {
 
     // Weapon & Ammo
     const cfg = WEAPONS[p.currentWeapon];
-    this.weaponName.textContent = cfg.name;
+    if (cfg) {
+      this.weaponName.textContent = cfg.name;
 
-    if (p.isReloading) {
-      this.ammoValue.textContent = `RELOADING...`;
-      this.reloadPrompt.style.display = 'block';
-    } else {
-      this.ammoValue.textContent = `${p.ammo} / ${cfg.magazineSize}`;
-      this.reloadPrompt.style.display = p.ammo === 0 ? 'block' : 'none';
+      if (p.isReloading) {
+        this.ammoValue.textContent = `RELOADING...`;
+        this.reloadPrompt.style.display = 'block';
+      } else {
+        this.ammoValue.textContent = `${p.ammo} / ${cfg.magazineSize}`;
+        this.reloadPrompt.style.display = p.ammo === 0 ? 'block' : 'none';
+      }
     }
+
+    this.highlightWeaponSlot(p.currentWeapon);
   }
 
   public updateTimer(seconds: number): void {
+    if (seconds <= 0) {
+      this.timerDisplay.textContent = 'OVERTIME';
+      return;
+    }
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     this.timerDisplay.textContent = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
@@ -89,7 +154,6 @@ export class HUD {
 
     this.killFeed.appendChild(item);
 
-    // Auto fadeout after 4.5 seconds
     setTimeout(() => {
       item.classList.add('fade-out');
       setTimeout(() => item.remove(), 500);
@@ -116,7 +180,7 @@ export class HUD {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>#${idx + 1}</td>
-        <td style="color:${entry.color}; font-weight:bold;">${this.escape(entry.name)}</td>
+        <td style="color:${entry.color}; font-weight:bold;">${this.escape(entry.name)} <span style="font-size:10px; color:#94a3b8;">(${entry.skin})</span></td>
         <td>${entry.kills}</td>
         <td>${entry.deaths}</td>
         <td><strong>${entry.score}</strong></td>

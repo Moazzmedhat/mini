@@ -7,6 +7,7 @@ import {
   EVENTS,
   TICK_INTERVAL_MS,
   COMBAT,
+  ALL_MAPS,
 } from '@jetpack-arena/shared';
 import { GameSimulation } from '../game/GameSimulation.js';
 
@@ -15,6 +16,7 @@ export interface RoomMember {
   id: string;
   name: string;
   color: string;
+  skin: string;
   isReady: boolean;
   pingMs: number;
 }
@@ -25,6 +27,7 @@ export class Room {
   public status: RoomStatus = 'waiting';
   public maxPlayers: number;
   public mapId = 'outpost_delta';
+  public roundTimeSec: number = COMBAT.DEFAULT_ROUND_TIME_SEC;
   public members = new Map<string, RoomMember>();
   public simulation: GameSimulation;
 
@@ -36,17 +39,41 @@ export class Room {
   // Track room destruction callback
   public onDestroy?: (code: string) => void;
 
-  constructor(code: string, hostSocket: Socket, hostName: string, hostColor: string, io: Server, maxPlayers = 8) {
+  constructor(
+    code: string,
+    hostSocket: Socket,
+    hostName: string,
+    hostColor: string,
+    hostSkin: string,
+    io: Server,
+    maxPlayers = 8,
+    mapId = 'outpost_delta',
+    roundTimeSec = COMBAT.DEFAULT_ROUND_TIME_SEC
+  ) {
     this.code = code;
     this.hostId = hostSocket.id;
     this.maxPlayers = maxPlayers;
+    this.mapId = mapId;
+    this.roundTimeSec = roundTimeSec;
     this.io = io;
-    this.simulation = new GameSimulation();
+    this.simulation = new GameSimulation(mapId, roundTimeSec);
 
-    this.addMember(hostSocket, hostName, hostColor);
+    this.addMember(hostSocket, hostName, hostColor, hostSkin);
   }
 
-  public addMember(socket: Socket, name: string, color: string): boolean {
+  public setSettings(mapId?: string, roundTimeSec?: number): void {
+    if (this.status !== 'waiting') return;
+    if (mapId && ALL_MAPS[mapId]) {
+      this.mapId = mapId;
+    }
+    if (roundTimeSec !== undefined && roundTimeSec >= 0) {
+      this.roundTimeSec = roundTimeSec;
+    }
+    this.simulation.setSettings(this.mapId, this.roundTimeSec);
+    this.broadcastState();
+  }
+
+  public addMember(socket: Socket, name: string, color: string, skin = 'soldier'): boolean {
     if (this.members.size >= this.maxPlayers) {
       return false;
     }
@@ -56,6 +83,7 @@ export class Room {
       id: socket.id,
       name,
       color,
+      skin: skin || 'soldier',
       isReady: socket.id === this.hostId, // Host is ready by default
       pingMs: 0,
     };
@@ -64,7 +92,7 @@ export class Room {
     socket.join(this.code);
 
     // Add to simulation
-    this.simulation.addPlayer(socket.id, name, color);
+    this.simulation.addPlayer(socket.id, name, color, skin);
 
     this.broadcastState();
     return true;
@@ -108,7 +136,6 @@ export class Room {
   public startCountdown(): boolean {
     if (this.status !== 'waiting') return false;
 
-    // Check if at least 1 player is ready (host can test solo if needed)
     this.status = 'starting';
     this.countdownRemaining = COMBAT.COUNTDOWN_SEC;
     this.broadcastState();
@@ -171,6 +198,7 @@ export class Room {
         id: m.id,
         name: m.name,
         color: m.color,
+        skin: m.skin,
         kills: p?.kills || 0,
         deaths: p?.deaths || 0,
         score: p?.score || 0,
@@ -195,6 +223,7 @@ export class Room {
         id: m.id,
         name: m.name,
         color: m.color,
+        skin: m.skin,
         isHost: m.id === this.hostId,
         isReady: m.isReady,
         kills: p?.kills || 0,
@@ -210,6 +239,7 @@ export class Room {
       status: this.status,
       maxPlayers: this.maxPlayers,
       mapId: this.mapId,
+      roundTimeSec: this.roundTimeSec,
       players,
       countdownRemaining: this.countdownRemaining,
       matchTimeRemaining: Math.ceil(this.simulation.matchTimeRemaining),
